@@ -50,6 +50,9 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="Ude, Version=0.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\UDE.CSharp.1.1.0\lib\Ude.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BlockReader.Buffer.cs" />
@@ -61,6 +64,7 @@
     <Compile Include="BlockReader32.Buffer32.cs" />
     <Compile Include="BlockReader32.BufferSearch32.cs" />
     <Compile Include="BlockReader32.cs" />
+    <Compile Include="FileWatcher.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="LineReader.cs" />
     <Compile Include="LineReader.LineEndings.cs" />
@@ -73,6 +77,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
