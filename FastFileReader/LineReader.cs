@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace FastFileReader {
    public partial class LineReader {
+      const char bom = '\uFEFF';
+
       BlockReader blockReader;
       Encoding encoding;
       LineEndings lineEndings;
@@ -44,11 +47,20 @@ namespace FastFileReader {
                charReader = new SimpleCharacterReader();
                break;
          }
+
          InitNewLineMarker();
+
+         TrimCharacters = lineEndings.CodePoints
+            .Where(c => c <= char.MaxValue && !char.IsSurrogate((char)c))
+            .Select(c => (char)c)
+            .Concat(new char[] { bom })
+            .ToArray();
       }
 
       public long StreamLength => blockReader.StreamLength;
 
+      public char[] TrimCharacters { get; private set; }
+      
       public Line ReadNext(Line line) {
          if (line == null)
             return null;
