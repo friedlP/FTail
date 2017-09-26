@@ -1,6 +1,8 @@
-
-.vs
-FastFileReader/bin
-FastFileReader/obj
-FastFileReaderTests/bin
-FastFileReaderTests/obj
+.vs/
+bin/
+obj/
+packages/
+*.suo
+*.user
+*.vspx
+*.psess
