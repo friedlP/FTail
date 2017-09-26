@@ -46,7 +46,9 @@ namespace FastFileReader {
          }
          InitNewLineMarker();
       }
-      
+
+      public long StreamLength => blockReader.StreamLength;
+
       public Line ReadNext(Line line) {
          if (line == null)
             return null;
