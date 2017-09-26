@@ -141,35 +141,29 @@ namespace FastFileReader {
             long length = end - begin;
 
             fixed (byte* buffer = byteBuffer) {
-               fixed (bool* chk0 = sd.checkB0) {
-                  fixed (bool* chk1 = sd.checkB1) {
-                     fixed (bool* chk2 = sd.checkB2) {
-                        fixed (bool* chk3 = sd.checkB3) {
-                           byte* bEnd = (buffer + length) - 3;
-                           byte* bCur = buffer + curIdx;
+               fixed (bool* chk0 = sd.checkB0, chk1 = sd.checkB1, chk2 = sd.checkB2, chk3 = sd.checkB3) {
+                  byte* bEnd = (buffer + length) - 3;
+                  byte* bCur = buffer + curIdx;
 
-                           if (bigEndian) {
-                              while (bCur < bEnd) {
-                                 if ((*(chk3 + *(bCur + 3))) && (*(chk2 + *(bCur + 2))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur)))) {
-                                    if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
-                                       foundAt = begin + (bCur - buffer);
-                                       return true;
-                                    }
-                                 }
-                                 bCur += 4;
-                              }
-                           } else {
-                              while (bCur < bEnd) {
-                                 if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
-                                    if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
-                                       foundAt = begin + (bCur - buffer);
-                                       return true;
-                                    }
-                                 }
-                                 bCur += 4;
-                              }
+                  if (bigEndian) {
+                     while (bCur < bEnd) {
+                        if ((*(chk3 + *(bCur + 3))) && (*(chk2 + *(bCur + 2))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur)))) {
+                           if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
+                              foundAt = begin + (bCur - buffer);
+                              return true;
                            }
                         }
+                        bCur += 4;
+                     }
+                  } else {
+                     while (bCur < bEnd) {
+                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
+                           if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
+                              foundAt = begin + (bCur - buffer);
+                              return true;
+                           }
+                        }
+                        bCur += 4;
                      }
                   }
                }
@@ -192,34 +186,28 @@ namespace FastFileReader {
             long length = end - begin;
 
             fixed (byte* buffer = byteBuffer) {
-               fixed (bool* chk0 = sd.checkB0) {
-                  fixed (bool* chk1 = sd.checkB1) {
-                     fixed (bool* chk2 = sd.checkB2) {
-                        fixed (bool* chk3 = sd.checkB3) {
-                           byte* bCur = buffer + curIdx;
+               fixed (bool* chk0 = sd.checkB0, chk1 = sd.checkB1, chk2 = sd.checkB2, chk3 = sd.checkB3) {
+                  byte* bCur = buffer + curIdx;
 
-                           if (bigEndian) {
-                              while (bCur >= buffer) {
-                                 if ((*(chk3 + *(bCur + 3))) && (*(chk2 + *(bCur + 2))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur)))) {
-                                    if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
-                                       foundAt = begin + (bCur - buffer);
-                                       return true;
-                                    }
-                                 }
-                                 bCur -= 4;
-                              }
-                           } else {
-                              while (bCur >= buffer) {
-                                 if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
-                                    if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
-                                       foundAt = begin + (bCur - buffer);
-                                       return true;
-                                    }
-                                 }
-                                 bCur -= 4;
-                              }
+                  if (bigEndian) {
+                     while (bCur >= buffer) {
+                        if ((*(chk3 + *(bCur + 3))) && (*(chk2 + *(bCur + 2))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur)))) {
+                           if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
+                              foundAt = begin + (bCur - buffer);
+                              return true;
                            }
                         }
+                        bCur -= 4;
+                     }
+                  } else {
+                     while (bCur >= buffer) {
+                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
+                           if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
+                              foundAt = begin + (bCur - buffer);
+                              return true;
+                           }
+                        }
+                        bCur -= 4;
                      }
                   }
                }
