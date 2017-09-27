@@ -136,8 +136,8 @@ namespace FastFileReader {
          // Read line
          byte[] strBytes = blockReader.ReadRange(lineBegin, lineEnd);
 
-         string str = encoding.GetString(strBytes, 0, (int)(lineEnd - lineBegin));
-         return new Line(str, lineBegin, lineEnd);
+         string str = encoding.GetString(strBytes);
+         return new Line(str, lineBegin, lineEnd, strBytes);
       }
 
       bool IsNewLine(BlockReader blockReader, LineEndings lineEndings, ICharacterReader charReader, long position, out long begin, out long end) {

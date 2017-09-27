@@ -12,6 +12,7 @@ namespace FastFileReader {
       long maxFileLength;
       DateTime encodingValidationTime;
 
+      Ude.CharsetDetector detector;
       Encoding encoding;
       byte[] encodingBuffer;
       int encodingBytesRead;
@@ -35,7 +36,9 @@ namespace FastFileReader {
       public Line GetLine(long position) {
          FileStream fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);         
          LineReader lineReader = new LineReader(fs, GetEncoding(fs));
-         return lineReader.Read(position);
+         Line l = lineReader.Read(position);
+         FeedDetector(l);
+         return l;
       }
 
       public Line NextLine(Line line) {
@@ -53,33 +56,73 @@ namespace FastFileReader {
       private void Reset() {
          maxFileLength = 0;
 
+         detector = null;
          encoding = null;
          encodingBytesRead = 0;
+
+         encodingValidationTime = DateTime.UtcNow;
+      }
+
+      private static long Min(long a, long b) => a < b ? a : b;
+      private static long Max(long a, long b) => a > b ? a : b;
+
+      private void FeedDetector(Line line) {
+         if (detector != null && !detector.IsDone() && line.End > encodingBuffer.Length) {
+            detector.Feed(line.Bytes, 0, line.Bytes.Length);
+            encoding = EncodingNameConversion(detector.Charset);
+         }
       }
 
       private Encoding GetEncoding(FileStream fs) {
-         if (fs.Length < maxFileLength) {
+         long streamLength = fs.Length;
+
+         if (streamLength < maxFileLength) {
             Reset();
          }
-         //if (encodingBytesRead < encodingBuffer.Length && encodingBytesRead < fs.Length) {
-         //   fs.Seek(encodingBytesRead, SeekOrigin.Begin);
-         //   encodingBytesRead += fs.Read(encodingBuffer, encodingBytesRead, encodingBuffer.Length - encodingBytesRead);
-         //   UpdateEncoding();
-         //   fileMod = false;
-         //} else 
-         if (encodingBytesRead < encodingBuffer.Length && encodingBytesRead < fs.Length
-               || fileMod && DateTime.UtcNow > encodingValidationTime.AddSeconds(1)) {
-            byte[] buffer = new byte[encodingBuffer.Length];
+
+         byte[] buffer = null;
+         int n = 0;
+         if (fileMod && DateTime.UtcNow > encodingValidationTime.AddSeconds(1)) {
+            buffer = new byte[encodingBuffer.Length];
             fs.Seek(0, SeekOrigin.Begin);
-            int n = fs.Read(buffer, 0, buffer.Length);
-            if (!AreEqual(encodingBuffer, encodingBytesRead, buffer, n)) {
-               encodingBuffer = buffer;
-               encodingBytesRead = n;
-               UpdateEncoding();
+            n = fs.Read(buffer, 0, (int)Min(buffer.Length, streamLength));
+
+            if (n < encodingBytesRead || !AreEqual(encodingBuffer, encodingBytesRead, buffer, encodingBytesRead)) {
+               Reset();
             }
-            fileMod = false;
+
+            encodingValidationTime = DateTime.UtcNow;
          }
-         maxFileLength = fs.Length;
+
+         if (detector == null) {
+            detector = new Ude.CharsetDetector();
+         }
+
+         if (!detector.IsDone()) {
+            if (encodingBytesRead < encodingBuffer.Length) {
+               if (n > 0 && n > encodingBytesRead) {
+                  detector.Feed(buffer, encodingBytesRead, n - encodingBytesRead);
+                  detector.DataEnd();
+
+                  encoding = EncodingNameConversion(detector.Charset);
+                  
+                  encodingBuffer = buffer;
+                  encodingBytesRead = n;
+               } else if (encodingBytesRead < encodingBuffer.Length) {
+                  fs.Seek(encodingBytesRead, SeekOrigin.Begin);
+                  int read = fs.Read(encodingBuffer, encodingBytesRead, (int)Min(encodingBuffer.Length, streamLength) - encodingBytesRead);
+
+                  detector.Feed(encodingBuffer, encodingBytesRead, read);
+                  detector.DataEnd();
+
+                  encoding = EncodingNameConversion(detector.Charset);
+                  
+                  encodingBytesRead += read;
+               }
+            }
+         }
+         
+         maxFileLength = streamLength;
          return encoding ?? Encoding.Default;
       }
 
@@ -109,19 +152,6 @@ namespace FastFileReader {
             }
          }
          return true;
-      }
-
-      private void UpdateEncoding() {
-         Ude.CharsetDetector detector = new Ude.CharsetDetector();
-         detector.Feed(encodingBuffer, 0, encodingBytesRead);
-         detector.DataEnd();
-
-         encoding = null;
-         if (detector.Charset != null) {
-            encoding = EncodingNameConversion(detector.Charset);
-         }
-
-         encodingValidationTime = DateTime.UtcNow;
       }
 
       private static Encoding EncodingNameConversion(string charsetDetectorName) {
