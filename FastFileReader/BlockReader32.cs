@@ -4,12 +4,12 @@ using System.IO;
 using System.Linq;
 
 namespace FastFileReader {
-   partial class BlockReader32 : BlockReader16 {
+   partial class BlockReader32 : BlockReader {
       private bool bigEndian;
 
       public override long StreamLength => PositionFirstByte(streamLength);
 
-      public BlockReader32(Stream stream, bool bigEndian) : base(stream, bigEndian) {
+      public BlockReader32(Stream stream, bool bigEndian) : base(stream) {
          this.bigEndian = bigEndian;
          ((Buffer32)FirstBuffer).BigEndian = bigEndian;
          ((Buffer32)SecondBuffer).BigEndian = bigEndian;

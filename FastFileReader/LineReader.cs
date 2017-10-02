@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace FastFileReader {
    public partial class LineReader {
-      const char bom = '\uFEFF';
+      public const char BOM = '\uFEFF';
 
       BlockReader blockReader;
       Encoding encoding;
@@ -53,7 +53,7 @@ namespace FastFileReader {
          TrimCharacters = lineEndings.CodePoints
             .Where(c => c <= char.MaxValue && !char.IsSurrogate((char)c))
             .Select(c => (char)c)
-            .Concat(new char[] { bom })
+            .Concat(new char[] { BOM })
             .ToArray();
       }
 
@@ -104,7 +104,7 @@ namespace FastFileReader {
          if (IsNewLine(blockReader, lineEndings, charReader, lineBegin, out nlBegin, out nlEnd)) {
             lineBegin = nlBegin - codePointSize;
          }
-         while (lineBegin > 0) {
+         while (lineBegin >= 0) {
             lineBegin = blockReader.FindBackward(lineBegin, searchData);
             if (lineBegin < 0)
                break;

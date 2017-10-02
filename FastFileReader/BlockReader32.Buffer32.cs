@@ -157,7 +157,7 @@ namespace FastFileReader {
                      }
                   } else {
                      while (bCur < bEnd) {
-                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
+                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk2 + *(bCur + 2))) && (*(chk3 + *(bCur + 3)))) {
                            if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
                               foundAt = begin + (bCur - buffer);
                               return true;
@@ -201,7 +201,7 @@ namespace FastFileReader {
                      }
                   } else {
                      while (bCur >= buffer) {
-                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk0 + *(bCur + 2))) && (*(chk1 + *(bCur + 3)))) {
+                        if ((*(chk0 + *(bCur))) && (*(chk1 + *(bCur + 1))) && (*(chk2 + *(bCur + 2))) && (*(chk3 + *(bCur + 3)))) {
                            if (CheckBytes(*bCur, *(bCur + 1), *(bCur + 2), *(bCur + 3), sd.b0Values, sd.b1Values, sd.b2Values, sd.b3Values)) {
                               foundAt = begin + (bCur - buffer);
                               return true;
@@ -217,14 +217,14 @@ namespace FastFileReader {
          }
 
          private bool CheckBytes(byte b0, byte b1, byte b2, byte b3, uint[][] b0Values, uint[][] b1Values, uint[][] b2Values, uint[][] b3Values) {
-            uint u = (ushort)((b0 << 24) | (b1 << 16) | (b2 << 8) | b3);
+            uint u = (uint)((b0 << 24) | (b1 << 16) | (b2 << 8) | b3);
             uint[] arr = b0Values[b0];
             if (b1Values[b1].Length < arr.Length)
                arr = b1Values[b1];
             if (b2Values[b2].Length < arr.Length)
-               arr = b1Values[b2];
+               arr = b2Values[b2];
             if (b3Values[b3].Length < arr.Length)
-               arr = b1Values[b3];
+               arr = b3Values[b3];
             int len = arr.Length;
             for (int i = 0; i < len; ++i) {
                if (arr[i] == u)
