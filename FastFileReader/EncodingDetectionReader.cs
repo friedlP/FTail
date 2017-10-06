@@ -17,15 +17,26 @@ namespace FastFileReader {
       }
 
       protected abstract Stream GetStream();
+      protected abstract void CloseStream(Stream stream);
 
       public Encoding Encoding => encoding ?? Encoding.Default;
 
       public Line GetLine(long position) {
-         using (Stream fs = GetStream()) {
-            LineReader lineReader = new LineReader(fs, GetEncoding(fs));
+         Stream stream = null;
+         try {
+            stream = GetStream();
+            LineReader lineReader = new LineReader(stream, GetEncoding(stream));
             Line l = lineReader.Read(position);
+            int enc = Encoding.CodePage;
             FeedDetector(l, lineReader);
+            if (Encoding.CodePage != enc) {
+               // Read line again with new encoding
+               lineReader = new LineReader(stream, Encoding);
+               l = lineReader.Read(position);
+            }
             return l;
+         } finally {
+            CloseStream(stream);
          }
       }
 
@@ -55,19 +66,23 @@ namespace FastFileReader {
       private static long Max(long a, long b) => a > b ? a : b;
 
       private void FeedDetector(Line line, LineReader lineReader) {
-         if (detector != null && !detector.IsDone() && line.Begin >= encodingBuffer.Length) {
+         if (detector != null && !detector.IsDone() && line.End >= encodingBuffer.Length) {
 
             // The encoding buffer could have a part of a character as last byte --> Read the
             // rest of this line
             if (!lineAtBufferEndCompleted) {
                Line bufferEndLine = lineReader.Read(encodingBuffer.Length - 1);
-               if (bufferEndLine != null && bufferEndLine.End > encodingBuffer.Length) {
+               if (bufferEndLine.End > encodingBuffer.Length) {
                   FeedDetector(bufferEndLine.Bytes, (int)(encodingBuffer.Length - bufferEndLine.Begin), (int)(bufferEndLine.End - encodingBuffer.Length));
                }
-               lineAtBufferEndCompleted = true;
+               if (bufferEndLine.End < lineReader.StreamLength) {
+                  lineAtBufferEndCompleted = true;
+               }
             }
 
-            FeedDetector(line.Bytes, 0, line.Bytes.Length);
+            if (line.Begin >= encodingBuffer.Length) {
+               FeedDetector(line.Bytes, 0, line.Bytes.Length);
+            }
             detector.DataEnd();
             encoding = EncodingNameConversion(detector.Charset);
          }
@@ -109,15 +124,19 @@ namespace FastFileReader {
                   encodingBuffer = buffer;
                   encodingBytesRead = n;
                } else if (encodingBytesRead < encodingBuffer.Length) {
-                  stream.Seek(encodingBytesRead, SeekOrigin.Begin);
-                  int read = stream.Read(encodingBuffer, encodingBytesRead, (int)Min(encodingBuffer.Length, streamLength) - encodingBytesRead);
+                  int toRead = (int)Min(encodingBuffer.Length, streamLength) - encodingBytesRead;
+                  if (toRead > 0) {
+                     stream.Seek(encodingBytesRead, SeekOrigin.Begin);
+                     int read = stream.Read(encodingBuffer, encodingBytesRead, toRead);
+                     if (read > 0) {
+                        FeedDetector(encodingBuffer, encodingBytesRead, read);
+                        detector.DataEnd();
 
-                  FeedDetector(encodingBuffer, encodingBytesRead, read);
-                  detector.DataEnd();
+                        encoding = EncodingNameConversion(detector.Charset);
 
-                  encoding = EncodingNameConversion(detector.Charset);
-
-                  encodingBytesRead += read;
+                        encodingBytesRead += read;
+                     }
+                  }
                }
             }
          }

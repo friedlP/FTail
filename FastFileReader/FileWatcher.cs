@@ -12,11 +12,20 @@ namespace FastFileReader {
 
       DateTime encodingValidationTime;
       bool fileModified;
-      
+
       protected override Stream GetStream() {
          return new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
       }
-      
+
+      protected override void CloseStream(Stream stream) {
+         try {
+            if (stream != null) {
+               stream.Dispose();
+            }
+         } catch {
+         }
+      }
+
       public FileWatcher(string fileName) {
          this.fileName = Path.GetFullPath(fileName);
          fsw = new FileSystemWatcher(Path.GetDirectoryName(this.fileName), Path.GetFileName(this.fileName));

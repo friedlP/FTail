@@ -16,6 +16,9 @@ namespace UnitTests {
          return Stream;
       }
 
+      protected override void CloseStream(Stream stream) {
+      }
+
       public void SetValidationRequired() {
          validationRequired = true;
       }
