@@ -9,6 +9,13 @@ namespace FastFileReader {
          StreamLength = streamLength;
       }
 
+      public LineRange() {
+         RequestedLine = null;
+         PreviousLines = new List<Line>();
+         NextLines = new List<Line>();
+         StreamLength = -1;
+      }
+
       public List<Line> PreviousLines { get; private set; }
       public Line RequestedLine { get; private set; }
       public List<Line> NextLines { get; private set; }
@@ -17,10 +24,7 @@ namespace FastFileReader {
       public override bool Equals(object obj) {
          var range = obj as LineRange;
          return range != null &&
-                EqualityComparer<List<Line>>.Default.Equals(PreviousLines, range.PreviousLines) &&
-                EqualityComparer<Line>.Default.Equals(RequestedLine, range.RequestedLine) &&
-                EqualityComparer<List<Line>>.Default.Equals(NextLines, range.NextLines) &&
-                StreamLength == range.StreamLength;
+            this == range;
       }
 
       public override int GetHashCode() {
@@ -36,9 +40,15 @@ namespace FastFileReader {
       private int HashCode(List<Line> lineList) {
          var hashCode = 387268372;
          if (lineList != null) {
-            hashCode = hashCode * -1521134295;
-            foreach (Line l in lineList) {
-               hashCode = hashCode * -1521134295 + l?.GetHashCode() ?? 387268372;
+            int count = lineList.Count;
+            hashCode = hashCode * -1521134295 + count.GetHashCode();
+            if (count > 0) {
+               // First line
+               hashCode = hashCode * -1521134295 + lineList[0]?.GetHashCode() ?? 387268372;
+            }
+            if (count > 1) {
+               // Last line
+               hashCode = hashCode * -1521134295 + lineList[count - 1]?.GetHashCode() ?? 387268372;
             }
          }
          return hashCode;
@@ -76,7 +86,7 @@ namespace FastFileReader {
                return false;
          }
 
-         for (int i = 0; i < lhs.PreviousLines.Count; ++i) {
+         for (int i = 0; i < lhs.NextLines.Count; ++i) {
             if (lhs.NextLines[i] != rhs.NextLines[i])
                return false;
          }

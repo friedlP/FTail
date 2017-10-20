@@ -14,7 +14,11 @@ namespace FastFileReader {
       bool fileModified;
 
       protected override Stream GetStream() {
-         return new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+         if (File.Exists(fileName)) {
+            return new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+         } else {
+            return null;
+         }         
       }
 
       protected override void CloseStream(Stream stream) {
@@ -36,8 +40,18 @@ namespace FastFileReader {
          fsw.Renamed += Fsw_Renamed;
          fsw.Error += Fsw_Error;
          fsw.EnableRaisingEvents = true;
+
+         CheckCyclic();
       }
 
+      private void CheckCyclic() {
+         Task.Run(() => {
+            System.Threading.Thread.Sleep(250);
+            fileModified = true;
+            HandleStreamChanged();
+            CheckCyclic();
+         });
+      }
 
       protected override void EncodingValidated() {
          encodingValidationTime = DateTime.UtcNow;

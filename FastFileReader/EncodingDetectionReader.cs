@@ -5,15 +5,23 @@ using System.Linq;
 using System.Text;
 
 namespace FastFileReader {
+
+   public enum Origin {
+      Begin,
+      End
+   }
+
    public delegate void ErrorEventHandler(object sender, Exception e);
    public delegate void EncodingChangedEventHandler(object sender, Encoding enc);
    public delegate void StreamChangedEventHandler(object sender);
+   public delegate void StreamUnavailableHandler(object sender);
 
    public abstract class EncodingDetectionReader {
       public event ErrorEventHandler Error;
       public event EncodingChangedEventHandler EcondingChanged;
       public event StreamChangedEventHandler StreamChanged;
-      
+      public event StreamUnavailableHandler StreamUnavailable;
+
       long maxStreamLength;
       
       Ude.CharsetDetector detector;
@@ -31,13 +39,23 @@ namespace FastFileReader {
 
       public Encoding Encoding => encoding ?? Encoding.Default;
 
-      public LineRange ReadRange(long position, int maxPrev, int maxNext) {
+      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext) {
          Stream stream = null;
          try {
             int cp = Encoding.CodePage;
 
             stream = GetStream();
+            if (stream == null) {
+               Reset();
+               StreamUnavailable?.Invoke(this);
+               return new LineRange();
+            }
+
             LineReader lineReader = new LineReader(stream, GetEncoding(stream));
+            if (origin == Origin.End) {
+               position = stream.Length + position;
+               if (position < 0) position = 0;
+            }
 
             RawLine curLine = null;
             List<RawLine> prev = new List<RawLine>();
@@ -71,7 +89,7 @@ namespace FastFileReader {
             } catch {
             }
             HandleError(e);
-            return null;
+            return new LineRange();
          }
       }
 
@@ -106,7 +124,7 @@ namespace FastFileReader {
       }
 
       public Line GetLine(long position) {
-         LineRange range = ReadRange(position, 0, 0);
+         LineRange range = ReadRange(position, Origin.Begin, 0, 0);
          return range.RequestedLine;
       }
 
