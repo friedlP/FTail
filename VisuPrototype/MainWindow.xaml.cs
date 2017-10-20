@@ -27,14 +27,6 @@ namespace VisuPrototype {
          InitializeComponent();
          textBox.Styles[0].Font = "Courier New";
          textBox.Styles[0].Size = 9;
-
-         fw = new FileWatcher(@"C:\temp\ftail_test.txt");
-         lb = new LineBuffer(fw);
-
-         lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
-         lb.EcondingChanged += Lb_EcondingChanged;
-         lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
-         lb.WatchRange(-1, Origin.End, 100, 100);
       }
 
       private void Lb_EcondingChanged(object sender, Encoding enc) {
@@ -88,6 +80,24 @@ namespace VisuPrototype {
       private void textBox_SizeChanged(object sender, EventArgs e) {
          UpdateText(lineRange);
          //lb?.ForceUpdate();
+      }
+
+      private void miOpenFile_Click(object sender, RoutedEventArgs e) {
+         Microsoft.Win32.OpenFileDialog fileBrowserDialog = new Microsoft.Win32.OpenFileDialog();
+         fileBrowserDialog.RestoreDirectory = true;
+         fileBrowserDialog.Multiselect = false;
+         if (fileBrowserDialog.ShowDialog() == true) {
+            fw?.Dispose();
+            lb?.Dispose();
+
+            fw = new FileWatcher(fileBrowserDialog.FileName);
+            lb = new LineBuffer(fw);
+
+            lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
+            lb.EcondingChanged += Lb_EcondingChanged;
+            lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
+            lb.WatchRange(-1, Origin.End, 100, 100);
+         }
       }
    }
 }

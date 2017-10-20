@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 namespace FastFileReader {
 
    public class FileWatcher : EncodingDetectionReader {
+      static int instanceCount;
       string fileName;
       FileSystemWatcher fsw;
 
       DateTime encodingValidationTime;
       bool fileModified;
+      bool disposed;
 
       protected override Stream GetStream() {
          if (File.Exists(fileName)) {
@@ -31,6 +33,8 @@ namespace FastFileReader {
       }
 
       public FileWatcher(string fileName) {
+         ++instanceCount;
+
          this.fileName = Path.GetFullPath(fileName);
          fsw = new FileSystemWatcher(Path.GetDirectoryName(this.fileName), Path.GetFileName(this.fileName));
          fsw.NotifyFilter = NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size;
@@ -44,8 +48,16 @@ namespace FastFileReader {
          CheckCyclic();
       }
 
+      ~FileWatcher() {
+         --instanceCount;
+         System.Diagnostics.Debug.WriteLine("~FileWatcher - Remaining instances: " + instanceCount);
+      }
+
       private void CheckCyclic() {
          Task.Run(() => {
+            if (disposed)
+               return;
+
             System.Threading.Thread.Sleep(250);
             fileModified = true;
             HandleStreamChanged();
@@ -91,6 +103,13 @@ namespace FastFileReader {
       private void Fsw_Changed(object sender, FileSystemEventArgs e) {
          fileModified = true;
          HandleStreamChanged();
+      }
+
+      public override void Dispose() {
+         fsw.EnableRaisingEvents = false;
+         fsw.Dispose();
+         base.Dispose();
+         disposed = true;
       }
    }
 }

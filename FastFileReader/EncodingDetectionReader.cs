@@ -16,7 +16,7 @@ namespace FastFileReader {
    public delegate void StreamChangedEventHandler(object sender);
    public delegate void StreamUnavailableHandler(object sender);
 
-   public abstract class EncodingDetectionReader {
+   public abstract class EncodingDetectionReader : IDisposable {
       public event ErrorEventHandler Error;
       public event EncodingChangedEventHandler EcondingChanged;
       public event StreamChangedEventHandler StreamChanged;
@@ -349,6 +349,10 @@ namespace FastFileReader {
             default:
                return null;
          }
+      }
+
+      public virtual void Dispose() {
+         Reset();
       }
    }
 }
