@@ -1,0 +1,19 @@
+﻿<Window x:Class="VisuPrototype.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wf="clr-namespace:ScintillaNET;assembly=ScintillaNET"  
+        xmlns:local="clr-namespace:VisuPrototype"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="378.455" Width="630.285">
+    <Grid>
+        <WindowsFormsHost Margin="10,41,27,27">
+            <wf:Scintilla x:Name="textBox" HScrollBar="False" ScrollWidthTracking="True" VScrollBar="False" Text="---" Enabled="False"></wf:Scintilla>
+        </WindowsFormsHost>
+        <Label Content="Encoding:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="64"/>
+        <ScrollBar Margin="0,41,10,27" Width="4" HorizontalAlignment="Right"/>
+        <ScrollBar Margin="10,0,27,10" Orientation="Horizontal" Height="17" VerticalAlignment="Bottom"/>
+        <Label x:Name="encodingLabel" Content="" Margin="79,10,10,0" RenderTransformOrigin="-0.292,-0.142" Height="26" VerticalAlignment="Top"/>
+    </Grid>
+</Window>
