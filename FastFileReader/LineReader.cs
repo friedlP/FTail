@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using System.Linq;
+using System;
 
 namespace FastFileReader {
    public partial class LineReader {
@@ -61,14 +62,14 @@ namespace FastFileReader {
 
       public char[] TrimCharacters { get; private set; }
       
-      public Line ReadNext(Line line) {
+      public RawLine ReadNext(Line line) {
          if (line == null)
             return null;
 
          return Read(line.End);
       }
 
-      public Line ReadPrevious(Line line) {
+      public RawLine ReadPrevious(Line line) {
          if (line == null)
             return null;
 
@@ -89,7 +90,7 @@ namespace FastFileReader {
          searchData = blockReader.CreateSearchData(lMarkers);
       }
 
-      public Line Read(long position) {
+      public RawLine Read(long position) {
          int codePointSize = blockReader.MinCodePointSize;
          position = blockReader.PositionFirstByte(position);
 
@@ -137,7 +138,7 @@ namespace FastFileReader {
          byte[] strBytes = blockReader.ReadRange(lineBegin, lineEnd);
 
          string str = encoding.GetString(strBytes);
-         return new Line(str, lineBegin, lineEnd, strBytes);
+         return new RawLine(str, lineBegin, lineEnd, strBytes);
       }
 
       bool IsNewLine(BlockReader blockReader, LineEndings lineEndings, ICharacterReader charReader, long position, out long begin, out long end) {

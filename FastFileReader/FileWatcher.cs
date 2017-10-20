@@ -34,9 +34,11 @@ namespace FastFileReader {
          fsw.Created += Fsw_Created;
          fsw.Deleted += Fsw_Deleted;
          fsw.Renamed += Fsw_Renamed;
+         fsw.Error += Fsw_Error;
          fsw.EnableRaisingEvents = true;
       }
-      
+
+
       protected override void EncodingValidated() {
          encodingValidationTime = DateTime.UtcNow;
          fileModified = false;
@@ -53,20 +55,28 @@ namespace FastFileReader {
          fileModified = false;
       }
       
+      private void Fsw_Error(object sender, ErrorEventArgs e) {
+         HandleError(e.GetException());
+      }
+
       private void Fsw_Renamed(object sender, RenamedEventArgs e) {
          Reset();
+         HandleStreamChanged();
       }
 
       private void Fsw_Deleted(object sender, FileSystemEventArgs e) {
          Reset();
+         HandleStreamChanged();
       }
 
       private void Fsw_Created(object sender, FileSystemEventArgs e) {
          Reset();
+         HandleStreamChanged();
       }
 
       private void Fsw_Changed(object sender, FileSystemEventArgs e) {
          fileModified = true;
+         HandleStreamChanged();
       }
    }
 }

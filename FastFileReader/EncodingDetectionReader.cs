@@ -1,9 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace FastFileReader {
+   public delegate void ErrorEventHandler(object sender, Exception e);
+   public delegate void EncodingChangedEventHandler(object sender, Encoding enc);
+   public delegate void StreamChangedEventHandler(object sender);
+
    public abstract class EncodingDetectionReader {
+      public event ErrorEventHandler Error;
+      public event EncodingChangedEventHandler EcondingChanged;
+      public event StreamChangedEventHandler StreamChanged;
+      
       long maxStreamLength;
       
       Ude.CharsetDetector detector;
@@ -21,23 +31,83 @@ namespace FastFileReader {
 
       public Encoding Encoding => encoding ?? Encoding.Default;
 
-      public Line GetLine(long position) {
+      public LineRange ReadRange(long position, int maxPrev, int maxNext) {
          Stream stream = null;
          try {
+            int cp = Encoding.CodePage;
+
             stream = GetStream();
             LineReader lineReader = new LineReader(stream, GetEncoding(stream));
-            Line l = lineReader.Read(position);
+
+            RawLine curLine = null;
+            List<RawLine> prev = new List<RawLine>();
+            List<RawLine> next = new List<RawLine>();
+
+            curLine = ReadRange(lineReader, position, maxPrev, maxNext, prev, next);
+
             int enc = Encoding.CodePage;
-            FeedDetector(l, lineReader);
+
+            foreach (RawLine line in prev) {
+               FeedDetector(line, lineReader);
+            }
+            if (curLine != null) FeedDetector(curLine, lineReader);
+            foreach (RawLine line in next) {
+               FeedDetector(line, lineReader);
+            }
+
             if (Encoding.CodePage != enc) {
                // Read line again with new encoding
                lineReader = new LineReader(stream, Encoding);
-               l = lineReader.Read(position);
+               curLine = ReadRange(lineReader, position, maxPrev, maxNext, prev, next);
             }
-            return l;
-         } finally {
-            CloseStream(stream);
+
+            if (Encoding.CodePage != cp)
+               EcondingChanged?.Invoke(this, Encoding);
+
+            return new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l), lineReader.StreamLength);
+         } catch (Exception e) {
+            try {
+               CloseStream(stream);
+            } catch {
+            }
+            HandleError(e);
+            return null;
          }
+      }
+
+      private static RawLine ReadRange(LineReader lineReader, long position, int maxPrev, int maxNext, List<RawLine> prev, List<RawLine> next) {
+         prev.Clear();
+         next.Clear();
+         RawLine curLine = lineReader.Read(position);
+
+         if (curLine != null) {
+            RawLine l = curLine;
+            for (int prevRead = 0; prevRead < maxPrev; ++prevRead) {
+               l = lineReader.ReadPrevious(l);
+               if (l != null) {
+                  prev.Insert(0, l);
+               } else {
+                  break;
+               }
+            }
+
+            l = curLine;
+            for (int nextRead = 0; nextRead < maxNext; ++nextRead) {
+               l = lineReader.ReadNext(l);
+               if (l != null) {
+                  next.Add(l);
+               } else {
+                  break;
+               }
+            }
+         }
+
+         return curLine;
+      }
+
+      public Line GetLine(long position) {
+         LineRange range = ReadRange(position, 0, 0);
+         return range.RequestedLine;
       }
 
       public Line NextLine(Line line) {
@@ -61,17 +131,25 @@ namespace FastFileReader {
          lineAtBufferEndCompleted = false;
       }
 
+      protected void HandleError(Exception e) {
+         Reset();
+         Error?.Invoke(this, e);
+      }
+
+      protected void HandleStreamChanged() {
+         StreamChanged?.Invoke(this);
+      }
 
       private static long Min(long a, long b) => a < b ? a : b;
       private static long Max(long a, long b) => a > b ? a : b;
 
-      private void FeedDetector(Line line, LineReader lineReader) {
+      private void FeedDetector(RawLine line, LineReader lineReader) {
          if (detector != null && !detector.IsDone() && line.End >= encodingBuffer.Length) {
 
             // The encoding buffer could have a part of a character as last byte --> Read the
             // rest of this line
             if (!lineAtBufferEndCompleted) {
-               Line bufferEndLine = lineReader.Read(encodingBuffer.Length - 1);
+               RawLine bufferEndLine = lineReader.Read(encodingBuffer.Length - 1);
                if (bufferEndLine.End > encodingBuffer.Length) {
                   FeedDetector(bufferEndLine.Bytes, (int)(encodingBuffer.Length - bufferEndLine.Begin), (int)(bufferEndLine.End - encodingBuffer.Length));
                }
