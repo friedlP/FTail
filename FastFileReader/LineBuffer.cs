@@ -15,6 +15,8 @@ namespace FastFileReader {
       Origin origin = Origin.Begin;
       int maxPrev;
       int maxFoll;
+      int maxPrevExtent;
+      int maxFollExtent;
       LineRange curState;
       DateTime lastUpdate;
       bool updateScheduled;
@@ -74,7 +76,7 @@ namespace FastFileReader {
                      lastUpdate = DateTime.UtcNow;
                      updateScheduled = false;
                      if (position >= 0 && origin == Origin.Begin || position < 0 && origin == Origin.End) {
-                        LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll);
+                        LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
                         
                         if (range != curState || updateForced) {
                            updateForced = false;
@@ -105,12 +107,14 @@ namespace FastFileReader {
          }
       }
 
-      public void WatchRange(long position, Origin origin, int maxPrev, int maxFoll) {
+      public void WatchRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent) {
          lock (lockObject) {
             this.position = position;
             this.origin = origin;
             this.maxPrev = maxPrev;
             this.maxFoll = maxFoll;
+            this.maxPrevExtent = maxPrevExtent;
+            this.maxFollExtent = maxFollExtent;
 
             CheckRange();
          }

@@ -90,7 +90,7 @@ namespace FastFileReader {
          searchData = blockReader.CreateSearchData(lMarkers);
       }
 
-      public RawLine Read(long position) {
+      public Extent GetLineExtent(long position) {
          int codePointSize = blockReader.MinCodePointSize;
          position = blockReader.PositionFirstByte(position);
 
@@ -117,7 +117,7 @@ namespace FastFileReader {
          }
          if (lineBegin < 0)
             lineBegin = 0;
-                  
+
          // Search end of line
          long lineEnd = position;
          while (lineEnd < blockReader.StreamLength) {
@@ -134,11 +134,19 @@ namespace FastFileReader {
             lineEnd += codePointSize;
          }
 
+         return new Extent(lineBegin, lineEnd);
+      }
+
+      public RawLine Read(long position) {
+         Extent extent = GetLineExtent(position);
+         if (extent == null)
+            return null;
+
          // Read line
-         byte[] strBytes = blockReader.ReadRange(lineBegin, lineEnd);
+         byte[] strBytes = blockReader.ReadRange(extent.Begin, extent.End);
 
          string str = encoding.GetString(strBytes);
-         return new RawLine(str, lineBegin, lineEnd, strBytes);
+         return new RawLine(str, extent, strBytes);
       }
 
       bool IsNewLine(BlockReader blockReader, LineEndings lineEndings, ICharacterReader charReader, long position, out long begin, out long end) {

@@ -65,6 +65,7 @@
     <Compile Include="BlockReader32.BufferSearch32.cs" />
     <Compile Include="BlockReader32.cs" />
     <Compile Include="EncodingDetectionReader.cs" />
+    <Compile Include="Extent.cs" />
     <Compile Include="FileWatcher.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="LineBuffer.cs" />

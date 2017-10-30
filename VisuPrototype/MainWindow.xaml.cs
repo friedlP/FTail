@@ -40,7 +40,7 @@ namespace VisuPrototype {
       }
 
       private void Lb_WatchedRangeChanged(object sender, LineRange range) {
-         lb.WatchRange(-1, Origin.End, 100, 100);
+         lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
          lineRange = range;
          UpdateText(lineRange);
       }
@@ -58,23 +58,55 @@ namespace VisuPrototype {
       private void SetText(LineRange range) {
          int maxLines = textBox.LinesOnScreen;
          StringBuilder stringBuilder = new StringBuilder();
+         
          if (range != null) {
-
-            //range.PreviousLines?.Skip(100 - maxLines + 1).ToList().ForEach(l => stringBuilder.AppendLine("P: " + l.Content.TrimEnd()));
-            //if (range.RequestedLine != null) stringBuilder.AppendLine("C: " + range.RequestedLine.Content.TrimEnd());
-            ////range.NextLines?.ForEach(l => stringBuilder.AppendLine("N: " + l.Content.TrimEnd()));
-            List<FastFileReader.Line> lines = new List<FastFileReader.Line>();
-            if (range.PreviousLines != null) lines.AddRange(range.PreviousLines);
-            if (range.RequestedLine != null) lines.Add(range.RequestedLine);
-            if (range.NextLines != null) lines.AddRange(range.NextLines);
+            List<FastFileReader.Line> lines = range.AllLines.ToList();
 
             if (lines.Count > maxLines)
                lines.RemoveRange(0, lines.Count - maxLines);
 
             lines.ForEach(l => stringBuilder.AppendLine(l.Content.TrimEnd()));
+
+            double relBeginPos = 0;
+            double relEndPos = 1;
+            if (lines.Count > 0) {
+               Extent firstVisibleLineExtent = lines[0].Extent;
+               Extent lastVisibleLineExtent = lines[lines.Count - 1].Extent;
+
+               Extent firstLoadedExtent = range.FirstExtent;
+               Extent lastLoadedExtent = range.LastExtent;
+
+               int relLineNoFirstVisible = 0;
+               int relLineNoLastVisible = 0;
+               int n = range.PreviousExtents.Count;
+               foreach (var line in range.AllLines) {
+                  if (firstVisibleLineExtent == line.Extent)
+                     relLineNoFirstVisible = n;
+                  if (lastVisibleLineExtent == line.Extent)
+                     relLineNoLastVisible = n;
+                  ++n;
+               }
+               n += range.NextExtents.Count;
+
+               double relPosFirstInLoaded = (double)relLineNoFirstVisible / n;
+               double relPosLastInLoaded = (double)(relLineNoLastVisible + 1) / n;
+
+               double relPosFirstLoaded = (double)firstLoadedExtent.Begin / range.StreamLength;
+               double relPosLastLoaded = (double)lastLoadedExtent.End / range.StreamLength;
+
+               double loadedPart = relPosLastLoaded - relPosFirstLoaded;
+
+               relBeginPos = (1 - loadedPart) * relPosFirstLoaded + loadedPart * relPosFirstInLoaded;
+               relEndPos = (1 - loadedPart) * relPosFirstLoaded + loadedPart * relPosLastInLoaded;
+            }
+            System.Diagnostics.Debug.WriteLine($"Begin: {relBeginPos}, End: {relEndPos}");
          }
          string text = stringBuilder.ToString();
-         if (textBox.Text != text) textBox.Text = text;
+         if (textBox.Text != text) {
+            textBox.ReadOnly = false;
+            textBox.Text = text;
+            textBox.ReadOnly = true;
+         }
       }
 
       private void textBox_SizeChanged(object sender, EventArgs e) {
@@ -96,7 +128,7 @@ namespace VisuPrototype {
             lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
             lb.EcondingChanged += Lb_EcondingChanged;
             lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
-            lb.WatchRange(-1, Origin.End, 100, 100);
+            lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
          }
       }
    }

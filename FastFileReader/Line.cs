@@ -1,15 +1,14 @@
-﻿using System.Collections.Generic;
-
-namespace FastFileReader {
+﻿namespace FastFileReader {
    public class Line {
       public string Content { get; private set; }
-      public long Begin { get; private set; }
-      public long End { get; private set; }
+      public Extent Extent { get; private set; }
 
-      public Line(string content, long begin, long end) {
+      public long Begin => Extent.Begin;
+      public long End => Extent.End;
+
+      public Line(string content, Extent extent) {
          this.Content = content;
-         this.Begin = begin;
-         this.End = end;
+         this.Extent = extent;
       }
 
       public static bool operator ==(Line lhs, Line rhs) {
@@ -22,8 +21,7 @@ namespace FastFileReader {
             return false;
          }
 
-         return lhs.Begin == rhs.Begin
-            && lhs.End == rhs.End
+         return lhs.Extent == rhs.Extent
             && lhs.Content == rhs.Content;
       }
 
@@ -39,8 +37,7 @@ namespace FastFileReader {
       public override int GetHashCode() {
          var hashCode = 1934838938;
          hashCode = hashCode * -1521134295 + Content?.GetHashCode() ?? 387268372;
-         hashCode = hashCode * -1521134295 + Begin.GetHashCode();
-         hashCode = hashCode * -1521134295 + End.GetHashCode();
+         hashCode = hashCode * -1521134295 + Extent?.GetHashCode() ?? 387268372;
          return hashCode;
       }
    }

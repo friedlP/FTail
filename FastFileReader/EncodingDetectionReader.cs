@@ -39,7 +39,7 @@ namespace FastFileReader {
 
       public Encoding Encoding => encoding ?? Encoding.Default;
 
-      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext) {
+      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt) {
          Stream stream = null;
          try {
             int cp = Encoding.CodePage;
@@ -60,8 +60,10 @@ namespace FastFileReader {
             RawLine curLine = null;
             List<RawLine> prev = new List<RawLine>();
             List<RawLine> next = new List<RawLine>();
+            List<Extent> prevExtent = new List<Extent>();
+            List<Extent> nextExtent = new List<Extent>();
 
-            curLine = ReadRange(lineReader, position, maxPrev, maxNext, prev, next);
+            curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
 
             int enc = Encoding.CodePage;
 
@@ -76,13 +78,14 @@ namespace FastFileReader {
             if (Encoding.CodePage != enc) {
                // Read line again with new encoding
                lineReader = new LineReader(stream, Encoding);
-               curLine = ReadRange(lineReader, position, maxPrev, maxNext, prev, next);
+               curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
             }
 
             if (Encoding.CodePage != cp)
                EcondingChanged?.Invoke(this, Encoding);
 
-            return new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l), lineReader.StreamLength);
+            return new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l),
+                                 prevExtent, nextExtent, lineReader.StreamLength);
          } catch (Exception e) {
             try {
                CloseStream(stream);
@@ -93,9 +96,12 @@ namespace FastFileReader {
          }
       }
 
-      private static RawLine ReadRange(LineReader lineReader, long position, int maxPrev, int maxNext, List<RawLine> prev, List<RawLine> next) {
+      private static RawLine ReadRange(LineReader lineReader, long position, int maxPrev, int maxNext, int maxPrevExtent, int maxNextExtent,
+                                       List<RawLine> prev, List<RawLine> next, List<Extent> prevExtent, List<Extent> nextExtent) {
          prev.Clear();
          next.Clear();
+         prevExtent.Clear();
+         nextExtent.Clear();
          RawLine curLine = lineReader.Read(position);
 
          if (curLine != null) {
@@ -108,6 +114,17 @@ namespace FastFileReader {
                   break;
                }
             }
+            if (l != null) {
+               Extent e = l.Extent;
+               for (int prevRead = 0; prevRead < maxPrevExtent; ++prevRead) {
+                  e = lineReader.GetLineExtent(e.Begin - 1);
+                  if (e != null) {
+                     prevExtent.Insert(0, e);
+                  } else {
+                     break;
+                  }
+               }
+            }
 
             l = curLine;
             for (int nextRead = 0; nextRead < maxNext; ++nextRead) {
@@ -118,13 +135,24 @@ namespace FastFileReader {
                   break;
                }
             }
+            if (l != null) {
+               Extent e = l.Extent;
+               for (int nextRead = 0; nextRead < maxNextExtent; ++nextRead) {
+                  e = lineReader.GetLineExtent(e.End);
+                  if (e != null) {
+                     prevExtent.Add(e);
+                  } else {
+                     break;
+                  }
+               }
+            }
          }
 
          return curLine;
       }
 
       public Line GetLine(long position) {
-         LineRange range = ReadRange(position, Origin.Begin, 0, 0);
+         LineRange range = ReadRange(position, Origin.Begin, 0, 0, 0, 0);
          return range.RequestedLine;
       }
 

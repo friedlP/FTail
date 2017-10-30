@@ -15,11 +15,11 @@
             </MenuItem>
         </Menu>
         <WindowsFormsHost Margin="10,49,27,27">
-            <wf:Scintilla x:Name="textBox" HScrollBar="False" ScrollWidthTracking="True" VScrollBar="False" Enabled="False" BufferedDraw="True" SizeChanged="textBox_SizeChanged"></wf:Scintilla>
+            <wf:Scintilla x:Name="textBox" HScrollBar="False" ScrollWidthTracking="True" VScrollBar="False" Enabled="True" BufferedDraw="True" SizeChanged="textBox_SizeChanged" ReadOnly="True"></wf:Scintilla>
         </WindowsFormsHost>
         <Label Content="Encoding:" HorizontalAlignment="Left" Margin="10,18,0,0" VerticalAlignment="Top" Width="64"/>
         <Label x:Name="encodingLabel" Content="" Margin="79,18,10,0" RenderTransformOrigin="-0.292,-0.142" Height="26" VerticalAlignment="Top"/>
-        <ScrollBar Margin="0,49,10,27" Width="4" HorizontalAlignment="Right"/>
+        <ScrollBar x:Name="vertScrollBar" Margin="0,49,10,27" Width="4" HorizontalAlignment="Right"/>
         <ScrollBar Margin="10,0,27,10" Orientation="Horizontal" Height="17" VerticalAlignment="Bottom"/>
     </Grid>
 </Window>
