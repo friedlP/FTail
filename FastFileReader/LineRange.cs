@@ -3,7 +3,7 @@
 namespace FastFileReader {
    public class LineRange {
       public LineRange(Line requestedLine, List<Line> previousLines, List<Line> nextLines, 
-                      List<Extent> previousExtents, List<Extent> nextExtents, long streamLength) {
+                       List<Extent> previousExtents, List<Extent> nextExtents, long streamLength) {
          RequestedLine = requestedLine;
          PreviousLines = previousLines ?? new List<Line>();
          NextLines = nextLines ?? new List<Line>();
@@ -49,7 +49,11 @@ namespace FastFileReader {
          get {
             if (PreviousLines.Count > 0)
                return PreviousLines[0];
-            return RequestedLine;
+            if (RequestedLine != null)
+               return RequestedLine;
+            if (NextLines.Count > 0)
+               return NextLines[0];
+            return null;
          }
       }
 
@@ -57,7 +61,11 @@ namespace FastFileReader {
          get {
             if (NextLines.Count > 0)
                return NextLines[NextLines.Count - 1];
-            return RequestedLine;
+            if (RequestedLine != null)
+               return RequestedLine;
+            if (PreviousLines.Count > 0)
+               return PreviousLines[PreviousLines.Count - 1];
+            return null;
          }
       }
 
@@ -65,7 +73,12 @@ namespace FastFileReader {
          get {
             if (PreviousExtents.Count > 0)
                return PreviousExtents[0];
-            return FirstLine.Extent;
+            Line firstLine = FirstLine;
+            if (firstLine != null)
+               return firstLine.Extent;
+            if (NextExtents.Count > 0)
+               return NextExtents[0];
+            return null;
          }
       }
 
@@ -73,7 +86,12 @@ namespace FastFileReader {
          get {
             if (NextExtents.Count > 0)
                return NextExtents[NextExtents.Count - 1];
-            return LastLine.Extent;
+            Line lastLine = LastLine;
+            if (lastLine != null)
+               return lastLine.Extent;
+            if (PreviousExtents.Count > 0)
+               return PreviousExtents[PreviousExtents.Count - 1];
+            return null;
          }
       }
 

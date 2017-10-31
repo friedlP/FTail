@@ -95,11 +95,13 @@ namespace VisuPrototype {
                double relPosLastLoaded = (double)lastLoadedExtent.End / range.StreamLength;
 
                double loadedPart = relPosLastLoaded - relPosFirstLoaded;
-
-               relBeginPos = (1 - loadedPart) * relPosFirstLoaded + loadedPart * relPosFirstInLoaded;
-               relEndPos = (1 - loadedPart) * relPosFirstLoaded + loadedPart * relPosLastInLoaded;
+ 
+               relBeginPos = relPosFirstLoaded + loadedPart * relPosFirstInLoaded;
+               relEndPos = relPosFirstLoaded + loadedPart * relPosLastInLoaded;
             }
             System.Diagnostics.Debug.WriteLine($"Begin: {relBeginPos}, End: {relEndPos}");
+            vertScrollBar.SetThumbLength(relEndPos - relBeginPos);
+            vertScrollBar.SetThumbCenter((relBeginPos + relEndPos) / 2);
          }
          string text = stringBuilder.ToString();
          if (textBox.Text != text) {

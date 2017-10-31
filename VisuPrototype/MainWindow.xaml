@@ -6,7 +6,7 @@
         xmlns:wf="clr-namespace:ScintillaNET;assembly=ScintillaNET"  
         xmlns:local="clr-namespace:VisuPrototype"
         mc:Ignorable="d"
-        Title="MainWindow" Height="378.455" Width="630.285"
+        Title="FTail" Height="378.455" Width="630.285"
         Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}">
     <Grid>
         <Menu x:Name="menu1" Margin="0" VerticalAlignment="Top" BorderThickness="0">
@@ -15,7 +15,7 @@
             </MenuItem>
         </Menu>
         <WindowsFormsHost Margin="10,49,27,27">
-            <wf:Scintilla x:Name="textBox" HScrollBar="False" ScrollWidthTracking="True" VScrollBar="False" Enabled="True" BufferedDraw="True" SizeChanged="textBox_SizeChanged" ReadOnly="True"></wf:Scintilla>
+            <wf:Scintilla x:Name="textBox" HScrollBar="False" ScrollWidthTracking="True" VScrollBar="False" Enabled="True" BufferedDraw="True" SizeChanged="textBox_SizeChanged" ReadOnly="True" CaretStyle="Invisible"/>
         </WindowsFormsHost>
         <Label Content="Encoding:" HorizontalAlignment="Left" Margin="10,18,0,0" VerticalAlignment="Top" Width="64"/>
         <Label x:Name="encodingLabel" Content="" Margin="79,18,10,0" RenderTransformOrigin="-0.292,-0.142" Height="26" VerticalAlignment="Top"/>
