@@ -23,7 +23,8 @@ namespace ScintillaScrollTest {
       int line = 0;
       int collumn = 0;
 
-      int offset = 0;
+      int nOffset = 0;
+      int pOffset = 0;
 
       int anchorSelLine;
       int anchorSelCol;
@@ -33,10 +34,8 @@ namespace ScintillaScrollTest {
       public MainWindow() {
          InitializeComponent();
 
-         textBox.AssignCmdKey(System.Windows.Forms.Keys.Up, ScintillaNET.Command.LineScrollUp);
-         textBox.AssignCmdKey(System.Windows.Forms.Keys.Down, ScintillaNET.Command.LineScrollDown);
-
-         offset = 100;
+         nOffset = 100;
+         pOffset = 200;
          IUpdateTextBox();
       }
 
@@ -56,41 +55,70 @@ namespace ScintillaScrollTest {
 
 
       private void IUpdateText() {
-         int diff = textBox.FirstVisibleLine - offset;
+         int diff = textBox.FirstVisibleLine - nOffset;
 
-         if (textBox.CurrentPosition > 0 && textBox.CurrentPosition < textBox.TextLength - 1) {
-            curCarLine = textBox.LineFromPosition(textBox.CurrentPosition);
-            curCarCol = textBox.CurrentPosition - textBox.Lines[curCarLine].Position;
-            curCarLine += line - offset;
-
-            if (textBox.CurrentPosition != textBox.SelectionStart) {
-               // forward
-               if (textBox.SelectionStart > 0) {
-                  anchorSelLine = textBox.LineFromPosition(textBox.SelectionStart);
-                  anchorSelCol = textBox.SelectionStart - textBox.Lines[anchorSelLine].Position;
-                  anchorSelLine += line - offset;
-               }
-            } else {
-               // backward
-               if (textBox.SelectionEnd < textBox.TextLength - 1) {
-                  anchorSelLine = textBox.LineFromPosition(textBox.SelectionEnd);
-                  anchorSelCol = textBox.SelectionEnd - textBox.Lines[anchorSelLine].Position;
-                  anchorSelLine += line - offset;
-               }
-            }
-         }
+         //UpdateSelcetion();
 
          line += diff;
 
-         if (diff == 0)
-            return;
+         if (diff != 0) {
+            IUpdateTextBox();
+         }
+      }
 
-         IUpdateTextBox();
+      private void UpdateSelcetion() {
+         curCarLine = textBox.LineFromPosition(textBox.CurrentPosition);
+         curCarCol = textBox.CurrentPosition - textBox.Lines[curCarLine].Position;
+         curCarLine += line - nOffset;
+
+         if (textBox.CurrentPosition == textBox.SelectionStart && textBox.CurrentPosition == textBox.SelectionEnd) {
+            anchorSelLine = curCarLine;
+            anchorSelCol = curCarCol;
+         } else if (textBox.CurrentPosition != textBox.SelectionStart) {
+            // forward
+            int newAnchorSelLine = textBox.LineFromPosition(textBox.SelectionStart);
+            int newAnchorSelCol = textBox.SelectionStart - textBox.Lines[newAnchorSelLine].Position;
+            newAnchorSelLine += line - nOffset;
+            if (textBox.SelectionStart > 0 || newAnchorSelLine < anchorSelLine
+                  || newAnchorSelLine == anchorSelLine && newAnchorSelCol < anchorSelCol) {
+               anchorSelLine = newAnchorSelLine;
+               anchorSelCol = newAnchorSelCol;
+            }
+         } else {
+            // backward
+            int newAnchorSelLine = textBox.LineFromPosition(textBox.SelectionEnd);
+            int newAnchorSelCol = textBox.SelectionEnd - textBox.Lines[newAnchorSelLine].Position;
+            newAnchorSelLine += line - nOffset;
+            if (textBox.SelectionEnd < textBox.TextLength || newAnchorSelLine > anchorSelLine
+                  || newAnchorSelLine == anchorSelLine && newAnchorSelCol > anchorSelCol) {
+               anchorSelLine = newAnchorSelLine;
+               anchorSelCol = newAnchorSelCol;
+            }
+         }
       }
 
       private void IUpdateTextBox() {
          StringBuilder sb = new StringBuilder();
-         for (int i = line - offset; i < line + 200; ++i) {
+
+         if (line >= -200) {
+            nOffset = 100;
+         } else if (line >= -300) {
+            nOffset = 300 + line;
+         } else {
+            nOffset = 0;
+         }
+         
+         if (line <= 200) {
+            pOffset = 200;
+         } else if (line <= 400) {
+            pOffset = 400 - line;
+         } else {
+            pOffset = 0;
+         }
+
+         Debug.WriteLine($"pOffset: {pOffset}, min={line - nOffset}, max={line + pOffset - 1}");
+
+         for (int i = line - nOffset; i < line + pOffset; ++i) {
             sb.AppendLine(i + ": " + new string('X', 1000));
          }
 
@@ -100,26 +128,26 @@ namespace ScintillaScrollTest {
          textBox.Text = sb.ToString();
          textBox.ReadOnly = true;
 
-         textBox.FirstVisibleLine = offset;
+         textBox.FirstVisibleLine = nOffset;
 
          Debug.WriteLine($"Begin: {anchorSelLine}, End: {curCarLine}");
 
          int caret;
-         if (curCarLine - line + offset < 0) {
+         if (curCarLine - line + nOffset < 0) {
             caret = 0;
-         } else if (curCarLine - line + offset > textBox.Lines.Count - 1) {
+         } else if (curCarLine - line + nOffset > textBox.Lines.Count - 1) {
             caret = textBox.TextLength;
          } else {
-            caret = textBox.Lines[curCarLine - line + offset].Position + curCarCol;
+            caret = textBox.Lines[curCarLine - line + nOffset].Position + curCarCol;
          }
 
          int anchor;
-         if (anchorSelLine - line + offset < 0) {
+         if (anchorSelLine - line + nOffset < 0) {
             anchor = 0;
-         } else if (anchorSelLine - line + offset > textBox.Lines.Count - 1) {
+         } else if (anchorSelLine - line + nOffset > textBox.Lines.Count - 1) {
             anchor = textBox.TextLength;
          } else {
-            anchor = textBox.Lines[anchorSelLine - line + offset].Position + anchorSelCol;
+            anchor = textBox.Lines[anchorSelLine - line + nOffset].Position + anchorSelCol;
          }
 
          textBox.SetSelection(caret, anchor);
@@ -140,6 +168,11 @@ namespace ScintillaScrollTest {
 
       private void textBox_UpdateUI(object sender, ScintillaNET.UpdateUIEventArgs e) {
          Debug.WriteLine(e.Change.ToString());
+
+         if ((e.Change & ScintillaNET.UpdateChange.Selection) != 0) {
+            UpdateSelcetion();
+         }
+        
          if ((e.Change & ScintillaNET.UpdateChange.VScroll) != 0) {
             UpdateText();
          }

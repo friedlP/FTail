@@ -3,12 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:wf="clr-namespace:ScintillaNET;assembly=ScintillaNET"  
+        xmlns:scintillascrolltest="clr-namespace:ScintillaScrollTest"
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
     <Grid>
         <WindowsFormsHost Margin="10" Initialized="WindowsFormsHost_Initialized">
-            <wf:Scintilla x:Name="textBox" UpdateUI="textBox_UpdateUI" CaretStyle="Line" VScrollBar="False" ></wf:Scintilla>
+            <scintillascrolltest:STextBox x:Name="textBox" UpdateUI="textBox_UpdateUI" VScrollBar="False"/>
         </WindowsFormsHost>
     </Grid>
 </Window>
