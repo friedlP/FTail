@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2006
+VisualStudioVersion = 15.0.27004.2009
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FastFileReader", "FastFileReader\FastFileReader.csproj", "{5BA5D096-80EF-44E5-A7C9-9DE47174976D}"
 EndProject
@@ -14,6 +14,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScintillaTests", "ScintillaTests\ScintillaTests.csproj", "{384C3C83-3D19-4737-840B-C62BC9B55A82}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScintillaScrollTest", "ScintillaScrollTest\ScintillaScrollTest.csproj", "{8F98386E-1DE7-4EE8-96D2-B6E97B0CDAA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STextViewControl", "STextViewControl\STextViewControl.csproj", "{D0E4199D-C37D-4615-B2A0-8D6BED761AEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STextViewScrollTest", "STextViewScrollTest\STextViewScrollTest.csproj", "{40622C11-9269-4582-AA4F-E0A770CF2165}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +49,14 @@ Global
 		{8F98386E-1DE7-4EE8-96D2-B6E97B0CDAA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F98386E-1DE7-4EE8-96D2-B6E97B0CDAA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F98386E-1DE7-4EE8-96D2-B6E97B0CDAA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0E4199D-C37D-4615-B2A0-8D6BED761AEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0E4199D-C37D-4615-B2A0-8D6BED761AEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0E4199D-C37D-4615-B2A0-8D6BED761AEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0E4199D-C37D-4615-B2A0-8D6BED761AEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40622C11-9269-4582-AA4F-E0A770CF2165}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40622C11-9269-4582-AA4F-E0A770CF2165}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40622C11-9269-4582-AA4F-E0A770CF2165}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40622C11-9269-4582-AA4F-E0A770CF2165}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="STextViewControl.STextView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:STextViewControl"
+             mc:Ignorable="d" d:DesignWidth="350" d:DesignHeight="250" MinWidth="50" MinHeight="50">
+    <DockPanel LastChildFill="True">
+        <Grid>
+            <WindowsFormsHost Margin="0,0,17,17">
+                <local:STextBox x:Name="sTextBox" UpdateUI="STextBox_UpdateUI" VScrollBar="False" HScrollBarValueChanged="STextBox_HScrollBarValueChanged" VScrollBarValueChanged="STextBox_VScrollBarValueChanged" BorderStyle="None" ScrollWidth="1000" />
+            </WindowsFormsHost>
+            <ScrollBar x:Name="vScrollBar" Width="17" HorizontalAlignment="Right" Margin="0,0,0,17" Maximum="1" ValueChanged="VScrollBar_ValueChanged" LargeChange="0.1" SmallChange="0.01" />
+            <ScrollBar x:Name="hScrollBar" VerticalAlignment="Bottom" Margin="0,0,17,0" Height="17" Orientation="Horizontal" Maximum="1" ValueChanged="HScrollBar_ValueChanged" LargeChange="0.1" SmallChange="0.01"/>
+        </Grid>
+    </DockPanel>
+</UserControl>
