@@ -140,7 +140,7 @@ namespace FastFileReader {
                for (int nextRead = 0; nextRead < maxNextExtent; ++nextRead) {
                   e = lineReader.GetLineExtent(e.End);
                   if (e != null) {
-                     prevExtent.Add(e);
+                     nextExtent.Add(e);
                   } else {
                      break;
                   }
