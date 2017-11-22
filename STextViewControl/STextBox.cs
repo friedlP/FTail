@@ -34,28 +34,9 @@ namespace STextViewControl {
       public event ScrollBarValueChangedEventHandler VScrollBarValueChanged;
       public ScrollBarParameter HScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
       public ScrollBarParameter VScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
-      string[] lines;
-      int topLine;
-      long positionFirstChar;
-      long positionLastChar;
-      long totalLength;
       VisibleRangeCalculator vRangeCalc = VisibleRange;
       VScrollHandler vScrollHandler = HandleVScroll;
-      
-
-      public void SetText(string[] lines, int topLine, long positionFirstChar, long positionLastChar, long totalLength) {
-         this.lines = lines;
-         this.topLine = topLine;
-         this.positionFirstChar = positionFirstChar;
-         this.positionLastChar = positionLastChar;
-         this.totalLength = totalLength;
-
-         StringBuilder sb = new StringBuilder();
-         Array.ForEach(lines, l => sb.Append(l));
-         base.Text = sb.ToString();
-         base.FirstVisibleLine = topLine;
-      }
-      
+            
       protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
          switch (keyData) {
             case Keys.Left:
@@ -161,31 +142,18 @@ namespace STextViewControl {
          double hScrollPix = HScrollPixels;
          double textAreaWidth = TextAreaWidth;
 
-         double min = 0;
-         double max = 1;
-         double smallChange = 0.01;
-         double largeChange = 0.1;
+         (double min, double max) = (0, 1);
+         
          if (scrollwidth > 0) {
-            min = xOffset / scrollwidth;
-            max = (xOffset + textAreaWidth) / scrollwidth;
-            if (max > 1) max = 1;
-
-            double f = (1 - (max - min));
-            double q = scrollwidth * f;
-            if (q > 0) {
-               smallChange = hScrollPix / q;
-               largeChange = textAreaWidth / q;
-               if (smallChange > 1) smallChange = 1;
-               if (largeChange > 1) largeChange = 1;
-            } else {
-               smallChange = 1;
-               largeChange = 1;
-            }
+            min = ToRange(xOffset / scrollwidth, 0, 1);
+            max = ToRange((xOffset + textAreaWidth) / scrollwidth, 0, 1);
          }
+
+         (double smallChange, double largeChange) = CalcScrollChange(min, max, textAreaWidth, hScrollPix);
 
          if (min != HScrollBarValue.StartValue || max != HScrollBarValue.EndValue
                || smallChange != HScrollBarValue.SmallChange || largeChange != HScrollBarValue.LargeChange) {
-            Debug.WriteLine($"min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
+            Debug.WriteLine($"HScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
             HScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
             HScrollBarValueChanged?.Invoke(this, HScrollBarValue);
          }
@@ -193,7 +161,7 @@ namespace STextViewControl {
 
       public void SetHScroll(double startValue, double endValue) {
          double v = 1 - (endValue - startValue);
-         double scrollPosition = v > 0 ? startValue / v : 0;
+         double scrollPosition = ToRange(v > 0 ? startValue / v : 0, 0, 1);
 
          int textAreaWidth = TextAreaWidth;
          int maxOffset = base.ScrollWidth - textAreaWidth;
@@ -202,11 +170,6 @@ namespace STextViewControl {
          if (maxOffset < 0) {
             xOff = 0;
          } else {
-            if (scrollPosition < 0)
-               scrollPosition = 0;
-            else if (scrollPosition > 1) {
-               scrollPosition = 1;
-            }
             xOff = (int)(maxOffset * scrollPosition + .5);
          }
          if (xOff != base.XOffset) {
@@ -226,9 +189,8 @@ namespace STextViewControl {
          double min = 0;
          double max = 1;
          if (lines > 0) {
-            min = (double)firstVisibleLine / lines;
-            max = (double)(firstVisibleLine + linesOnScreen) / lines;
-            if (max > 1) max = 1;
+            min = ToRange((double)firstVisibleLine / lines, 0, 1);
+            max = ToRange((double)(firstVisibleLine + linesOnScreen) / lines, 0, 1);
          }
          return (min, max);
       }
@@ -246,37 +208,17 @@ namespace STextViewControl {
          int firstVisLine = base.FirstVisibleLine;
          int linesOnScreen = base.LinesOnScreen;
 
-         double min = 0;
-         double max = 1;
-         double smallChange = 0.01;
-         double largeChange = 0.1;
-
-         (min, max) = GetVisibleRange(lines, firstVisLine, linesOnScreen);
-         if (lines > 0) {
-            double visiblePart = max - min;
-            double remainingScrollArea = 1 - visiblePart;
-            double estLinesTotal = linesOnScreen / visiblePart;
-            double q = estLinesTotal * remainingScrollArea;
-            if (q > 0) {
-               smallChange = 1 / q;
-               largeChange = linesOnScreen / q;
-               if (smallChange > 1) smallChange = 1;
-               if (largeChange > 1) largeChange = 1;
-            } else {
-               smallChange = 1;
-               largeChange = 1;
-            }
-         }
+         (double min, double max) = GetVisibleRange(lines, firstVisLine, linesOnScreen);
+         (double smallChange, double largeChange) = CalcScrollChange(min, max, linesOnScreen, 1);
 
          if (min != VScrollBarValue.StartValue || max != VScrollBarValue.EndValue
                || smallChange != VScrollBarValue.SmallChange || largeChange != VScrollBarValue.LargeChange) {
-            Debug.WriteLine($"min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
+            Debug.WriteLine($"VScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
             VScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
             VScrollBarValueChanged?.Invoke(this, VScrollBarValue);
          }
       }
-
-
+      
       public void SetVScroll(double startValue, double endValue) {
          double vPrev = 1 - (VScrollBarValue.EndValue - VScrollBarValue.StartValue);
          double scrollPositionPrev = vPrev > 0 ? VScrollBarValue.StartValue / vPrev : 0;
@@ -302,6 +244,26 @@ namespace STextViewControl {
          Debug.WriteLine($"VScroll: scroll={scroll}, scrollLines={scrollLines}");
          vScrollHandler(this, scroll, scrollLines);
          UpdateVScrollBar();
+      }
+
+      private static double ToRange(double val, double min, double max) => val < min ? min : (val > max ? max : val);
+
+      private (double smallChange, double largeChange) CalcScrollChange(double min, double max, double visibleSize, double scrollOne) {
+         min = ToRange(min, 0, 1);
+         max = ToRange(max, 0, 1);
+         if (min >= max || visibleSize <= 0)
+            return (0, 0);
+
+         double visiblePart = max - min;
+         if (visiblePart == 1)
+            return (1, 1);
+
+         double remainingScrollArea = 1 - visiblePart;
+         double totalSize = visibleSize / visiblePart;
+         double q = totalSize * remainingScrollArea;
+         double smallChange = ToRange(scrollOne / q, 0, 1);
+         double largeChange = ToRange(visibleSize / q, 0, 1);
+         return (smallChange, largeChange);
       }
 
       private int HScrollPixels => base.TextWidth(0, "O");
