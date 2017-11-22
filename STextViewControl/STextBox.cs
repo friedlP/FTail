@@ -94,25 +94,17 @@ namespace STextViewControl {
       }
 
       protected override void OnMouseWheel(MouseEventArgs e) {
-         var he = e as HandledMouseEventArgs;
-         bool shiftPresed = (Control.ModifierKeys & Keys.Shift) != Keys.None;
-         if (e.Delta > 0) {
-            if (shiftPresed) {
-               ScrollLeft(HScrollPixels * scrollLines);
+         if (e.Delta != 0) {
+            bool shiftPressed = (Control.ModifierKeys & Keys.Shift) != Keys.None;
+            int sign = e.Delta > 0 ? -1 : 1;
+            if (shiftPressed) {
+               HScroll(sign * HScrollPixels * scrollLines);
             } else {
-               VScroll(-scrollLines);
+               VScroll(sign * scrollLines);
             }
+            var he = e as HandledMouseEventArgs;
             if (he != null) he.Handled = true;
-         } else if (e.Delta < 0) {
-            if (shiftPresed) {
-               ScrollRight(HScrollPixels * scrollLines);
-            } else {
-               VScroll(scrollLines);
-            }
-            if (he != null) he.Handled = true;
-         } else {
-            base.OnMouseWheel(e);
-         }
+         } 
       }
 
       protected override void OnUpdateUI(UpdateUIEventArgs e) {
@@ -313,6 +305,14 @@ namespace STextViewControl {
       }
 
       private int HScrollPixels => base.TextWidth(0, "O");
+
+      private void HScroll(int pixels) {
+         if (pixels >= 0) {
+            ScrollRight(pixels);
+         } else {
+            ScrollLeft(-pixels);
+         }
+      }
 
       private void ScrollRight(int pixels) {
          int xOff = base.XOffset;

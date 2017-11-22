@@ -32,22 +32,18 @@ namespace STextViewControl {
       public STextBox STextBox => sTextBox;
 
       private void HScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-         double thumbLength = hScrollBar.GetThumbLength();
-         double thumbCenter = hScrollBar.GetThumbCenter();
-
-         double startValue = thumbCenter - thumbLength / 2;
-         double endValue = thumbCenter + thumbLength / 2;
-         
-         double sv = startValue < 0 ? 0 : startValue > 1 ? 1 : startValue;
-         double ev = endValue < 0 ? 0 : endValue > 1 ? 1 : endValue;
-
-         sTextBox.SetHScroll(sv, ev);
+         (double startValue, double endValue) = GetValueRange(hScrollBar);
+         sTextBox.SetHScroll(startValue, endValue);
+      }
+      
+      private void VScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
+         (double startValue, double endValue) = GetValueRange(vScrollBar);
+         sTextBox.SetVScroll(startValue, endValue);
       }
 
-
-      private void VScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
-         double thumbLength = vScrollBar.GetThumbLength();
-         double thumbCenter = vScrollBar.GetThumbCenter();
+      private (double startValue, double endValue) GetValueRange(System.Windows.Controls.Primitives.ScrollBar scrollBar) {
+         double thumbLength = scrollBar.GetThumbLength();
+         double thumbCenter = scrollBar.GetThumbCenter();
 
          double startValue = thumbCenter - thumbLength / 2;
          double endValue = thumbCenter + thumbLength / 2;
@@ -55,39 +51,21 @@ namespace STextViewControl {
          double sv = startValue < 0 ? 0 : startValue > 1 ? 1 : startValue;
          double ev = endValue < 0 ? 0 : endValue > 1 ? 1 : endValue;
 
-         sTextBox.SetVScroll(sv, ev);
+         return (sv, ev);
       }
 
       private void STextBox_HScrollBarValueChanged(object sender, ScrollBarParameter parameter) {
-         if (hScrollBar != null) {
-            double oldThumbLength = hScrollBar.GetThumbLength();
-            double oldThumbCenter = hScrollBar.GetThumbCenter();
-            double newThumbLength = parameter.EndValue - parameter.StartValue;
-            double newThumbCenter = (parameter.StartValue + parameter.EndValue) / 2;
-            bool newEnabled = (parameter.StartValue > 0 || parameter.EndValue < 1);
-            double newMaximuum = newEnabled ? 1 : 0;
-
-            if (oldThumbLength != newThumbLength
-                  || oldThumbCenter != newThumbCenter
-                  || hScrollBar.SmallChange != parameter.SmallChange
-                  || hScrollBar.LargeChange != parameter.LargeChange
-                  || hScrollBar.IsEnabled != newEnabled
-                  || hScrollBar.Maximum != newMaximuum) {
-               hScrollBar.IsEnabled = newEnabled;
-               hScrollBar.Maximum = newMaximuum;
-               hScrollBar.SmallChange = parameter.SmallChange;
-               hScrollBar.LargeChange = parameter.LargeChange;
-               hScrollBar.SetThumbLength(newThumbLength);
-               hScrollBar.SetThumbCenter(newThumbCenter);
-            }
-         }
+         OnScrollBarValueChanged(hScrollBar, parameter);
+      }
+      
+      private void STextBox_VScrollBarValueChanged(object sender, ScrollBarParameter parameter) {
+         OnScrollBarValueChanged(vScrollBar, parameter);
       }
 
-
-      private void STextBox_VScrollBarValueChanged(object sender, ScrollBarParameter parameter) {
-         if (vScrollBar != null) {
-            double oldThumbLength = vScrollBar.GetThumbLength();
-            double oldThumbCenter = vScrollBar.GetThumbCenter();
+      private void OnScrollBarValueChanged(System.Windows.Controls.Primitives.ScrollBar scrollBar, ScrollBarParameter parameter) {
+         if (scrollBar != null) {
+            double oldThumbLength = scrollBar.GetThumbLength();
+            double oldThumbCenter = scrollBar.GetThumbCenter();
             double newThumbLength = parameter.EndValue - parameter.StartValue;
             double newThumbCenter = (parameter.StartValue + parameter.EndValue) / 2;
             bool newEnabled = (parameter.StartValue > 0 || parameter.EndValue < 1);
@@ -95,16 +73,16 @@ namespace STextViewControl {
 
             if (oldThumbLength != newThumbLength
                   || oldThumbCenter != newThumbCenter
-                  || vScrollBar.SmallChange != parameter.SmallChange
-                  || vScrollBar.LargeChange != parameter.LargeChange
-                  || vScrollBar.IsEnabled != newEnabled
-                  || vScrollBar.Maximum != newMaximuum) {
-               vScrollBar.IsEnabled = newEnabled;
-               vScrollBar.Maximum = newMaximuum;
-               vScrollBar.SmallChange = parameter.SmallChange;
-               vScrollBar.LargeChange = parameter.LargeChange;
-               vScrollBar.SetThumbLength(newThumbLength);
-               vScrollBar.SetThumbCenter(newThumbCenter);
+                  || scrollBar.SmallChange != parameter.SmallChange
+                  || scrollBar.LargeChange != parameter.LargeChange
+                  || scrollBar.IsEnabled != newEnabled
+                  || scrollBar.Maximum != newMaximuum) {
+               scrollBar.IsEnabled = newEnabled;
+               scrollBar.Maximum = newMaximuum;
+               scrollBar.SmallChange = parameter.SmallChange;
+               scrollBar.LargeChange = parameter.LargeChange;
+               scrollBar.SetThumbLength(newThumbLength);
+               scrollBar.SetThumbCenter(newThumbCenter);
             }
          }
       }
