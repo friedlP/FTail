@@ -151,12 +151,9 @@ namespace STextViewControl {
 
          (double smallChange, double largeChange) = CalcScrollChange(min, max, textAreaWidth, hScrollPix);
 
-         if (min != HScrollBarValue.StartValue || max != HScrollBarValue.EndValue
-               || smallChange != HScrollBarValue.SmallChange || largeChange != HScrollBarValue.LargeChange) {
-            Debug.WriteLine($"HScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
-            HScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
-            HScrollBarValueChanged?.Invoke(this, HScrollBarValue);
-         }
+         Debug.WriteLine($"HScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
+         HScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
+         HScrollBarValueChanged?.Invoke(this, HScrollBarValue);
       }
 
       public void SetHScroll(double startValue, double endValue) {
@@ -182,7 +179,8 @@ namespace STextViewControl {
       }
 
       private (double min, double max) GetVisibleRange(int lines, int firstVisibleLine, int linesOnScreen) {
-         return vRangeCalc(lines, firstVisibleLine, linesOnScreen);
+         (double min, double max) = vRangeCalc(lines, firstVisibleLine, linesOnScreen);
+         return (ToRange(min, 0, 1), ToRange(max, 0, 1));
       }
 
       private static (double min, double max) VisibleRange(int lines, int firstVisibleLine, int linesOnScreen) {
@@ -211,12 +209,9 @@ namespace STextViewControl {
          (double min, double max) = GetVisibleRange(lines, firstVisLine, linesOnScreen);
          (double smallChange, double largeChange) = CalcScrollChange(min, max, linesOnScreen, 1);
 
-         if (min != VScrollBarValue.StartValue || max != VScrollBarValue.EndValue
-               || smallChange != VScrollBarValue.SmallChange || largeChange != VScrollBarValue.LargeChange) {
-            Debug.WriteLine($"VScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
-            VScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
-            VScrollBarValueChanged?.Invoke(this, VScrollBarValue);
-         }
+         Debug.WriteLine($"VScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
+         VScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
+         VScrollBarValueChanged?.Invoke(this, VScrollBarValue);
       }
       
       public void SetVScroll(double startValue, double endValue) {
