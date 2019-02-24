@@ -2,14 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace FastFileReader {
+namespace FastFileReader
+{
 
-   public class FileWatcher : EncodingDetectionReader {
+   public partial class FileWatcher : EncodingDetectionReader {
       static int instanceCount;
       string fileName;
       FileSystemWatcher fsw;
+      FileChecker fc;
 
       DateTime encodingValidationTime;
       bool fileModified;
@@ -45,24 +48,13 @@ namespace FastFileReader {
          fsw.Error += Fsw_Error;
          fsw.EnableRaisingEvents = true;
 
-         CheckCyclic();
+         fc = new FileChecker(this.fileName);
+         fc.Changed += Fsw_Changed;
+         fc.Start();
       }
 
       ~FileWatcher() {
-         --instanceCount;
-         System.Diagnostics.Debug.WriteLine("~FileWatcher - Remaining instances: " + instanceCount);
-      }
-
-      private void CheckCyclic() {
-         Task.Run(() => {
-            if (disposed)
-               return;
-
-            System.Threading.Thread.Sleep(250);
-            fileModified = true;
-            HandleStreamChanged();
-            CheckCyclic();
-         });
+         Dispose(false);
       }
 
       protected override void EncodingValidated() {
@@ -106,10 +98,28 @@ namespace FastFileReader {
       }
 
       public override void Dispose() {
-         fsw.EnableRaisingEvents = false;
+         Dispose(true);
+         GC.SuppressFinalize(this);
+      }
+
+      // Protected implementation of Dispose pattern.
+      protected virtual void Dispose(bool disposing) {
+         if (disposed)
+            return;
+
+         if (disposing) {
+            fsw.EnableRaisingEvents = false;
+         }
+
+         fc.Dispose();
          fsw.Dispose();
-         base.Dispose();
+
+         --instanceCount;
+         System.Diagnostics.Debug.WriteLine("~FileWatcher - Remaining instances: " + instanceCount);
+
          disposed = true;
+
+         base.Dispose();
       }
    }
 }
