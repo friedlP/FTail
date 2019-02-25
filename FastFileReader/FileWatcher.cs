@@ -5,8 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FastFileReader
-{
+namespace FastFileReader {
 
    public partial class FileWatcher : EncodingDetectionReader {
       static int instanceCount;
@@ -48,7 +47,7 @@ namespace FastFileReader
          fsw.Error += Fsw_Error;
          fsw.EnableRaisingEvents = true;
 
-         fc = new FileChecker(this.fileName);
+         fc = new FileChecker(this.fileName, new TimeSpan(0, 0, 0, 0, 10));
          fc.Changed += Fsw_Changed;
          fc.Start();
       }

@@ -67,6 +67,7 @@
     <Compile Include="EncodingDetectionReader.cs" />
     <Compile Include="Extent.cs" />
     <Compile Include="FileWatcher.cs" />
+    <Compile Include="FileWatcher.FileChecker.cs" />
     <Compile Include="Line.cs" />
     <Compile Include="LineBuffer.cs" />
     <Compile Include="LineRange.cs" />

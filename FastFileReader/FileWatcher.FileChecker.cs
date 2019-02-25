@@ -12,12 +12,14 @@ namespace FastFileReader
          DateTime lastWrite;
          FileInfo fileInfo;
          Timer timer;
+         TimeSpan checkIntervall;
          volatile bool isActive;
 
          public event FileSystemEventHandler Changed;
 
-         public FileChecker(string fileName)
+         public FileChecker(string fileName, TimeSpan checkIntervall)
          {
+            this.checkIntervall = checkIntervall;
             fileInfo = new FileInfo(fileName);
             lastWrite = fileInfo.LastWriteTimeUtc;
          }
@@ -33,16 +35,22 @@ namespace FastFileReader
                return;
 
             WeakReference weakReference = new WeakReference(this);
-            timer?.Dispose();
-            timer = new Timer(new TimerCallback((o) =>
+            if (timer == null)
             {
-               FileChecker fc = (FileChecker)weakReference.Target;
-               if (fc != null)
+               timer = new Timer(new TimerCallback((o) =>
                {
-                  fc.CheckFile();
-                  fc.CallFileCheck();
-               }
-            }), null, 10, Timeout.Infinite);
+                  FileChecker fc = (FileChecker)weakReference.Target;
+                  if (fc != null)
+                  {
+                     fc.CheckFile();
+                     fc.CallFileCheck();
+                  }
+               }), null, checkIntervall, Timeout.InfiniteTimeSpan);
+            }
+            else
+            {
+               timer.Change(checkIntervall, Timeout.InfiniteTimeSpan);
+            }
          }
 
          public void CheckFile()
@@ -63,6 +71,7 @@ namespace FastFileReader
          {
             Stop();
             timer?.Dispose();
+            timer = null;
          }
 
          public void Start()
