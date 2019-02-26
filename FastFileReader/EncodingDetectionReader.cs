@@ -37,17 +37,37 @@ namespace FastFileReader {
       protected abstract Stream GetStream();
       protected abstract void CloseStream(Stream stream);
 
-      public Encoding Encoding => encoding ?? Encoding.Default;
+      public virtual Encoding Encoding {
+         get {
+            UpdateEncoding();
+            return CurEncoding;
+         }
+      }
 
-      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt) {
+      private void UpdateEncoding() {
          Stream stream = null;
          try {
-            int cp = Encoding.CodePage;
+            stream = GetStream();
+            if (stream == null) {
+               HandleStreamUnavailable();
+            } else {
+               GetEncoding(GetStream());
+            }
+         } catch (Exception e) {
+            HandleError(stream, e);
+         }
+      }
+
+      private Encoding CurEncoding => encoding ?? Encoding.Default;
+
+      public virtual LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt) {
+         Stream stream = null;
+         try {
+            int cp = CurEncoding.CodePage;
 
             stream = GetStream();
             if (stream == null) {
-               Reset();
-               StreamUnavailable?.Invoke(this);
+               HandleStreamUnavailable();
                return new LineRange();
             }
 
@@ -65,7 +85,7 @@ namespace FastFileReader {
 
             curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
 
-            int enc = Encoding.CodePage;
+            int enc = CurEncoding.CodePage;
 
             foreach (RawLine line in prev) {
                FeedDetector(line, lineReader);
@@ -75,23 +95,19 @@ namespace FastFileReader {
                FeedDetector(line, lineReader);
             }
 
-            if (Encoding.CodePage != enc) {
+            if (CurEncoding.CodePage != enc) {
                // Read line again with new encoding
-               lineReader = new LineReader(stream, Encoding);
+               lineReader = new LineReader(stream, CurEncoding);
                curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
             }
 
-            if (Encoding.CodePage != cp)
-               EcondingChanged?.Invoke(this, Encoding);
+            if (CurEncoding.CodePage != cp)
+               EcondingChanged?.Invoke(this, CurEncoding);
 
             return new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l),
                                  prevExtent, nextExtent, lineReader.StreamLength);
          } catch (Exception e) {
-            try {
-               CloseStream(stream);
-            } catch {
-            }
-            HandleError(e);
+            HandleError(stream, e);
             return new LineRange();
          }
       }
@@ -151,18 +167,18 @@ namespace FastFileReader {
          return curLine;
       }
 
-      public Line GetLine(long position) {
+      public virtual Line GetLine(long position) {
          LineRange range = ReadRange(position, Origin.Begin, 0, 0, 0, 0);
          return range.RequestedLine;
       }
 
-      public Line NextLine(Line line) {
+      public virtual Line NextLine(Line line) {
          if (line == null)
             return null;
          return GetLine(line.End);
       }
 
-      public Line PreviousLine(Line line) {
+      public virtual Line PreviousLine(Line line) {
          if (line == null)
             return null;
          return GetLine(line.Begin - 1);
@@ -177,12 +193,33 @@ namespace FastFileReader {
          lineAtBufferEndCompleted = false;
       }
 
+      private void HandleStreamUnavailable() {
+         Reset();
+         ReportStreamUnavailable();
+      }
+
+      protected void ReportStreamUnavailable() {
+         StreamUnavailable?.Invoke(this);
+      }
+
+      private void HandleError(Stream stream, Exception e) {
+         try {
+            CloseStream(stream);
+         } catch {
+         }
+         HandleError(e);
+      }
+
       protected void HandleError(Exception e) {
          Reset();
+         ReportError(e);
+      }
+
+      protected void ReportError(Exception e) {
          Error?.Invoke(this, e);
       }
 
-      protected void HandleStreamChanged() {
+      protected void ReportStreamChanged() {
          StreamChanged?.Invoke(this);
       }
 
@@ -282,7 +319,7 @@ namespace FastFileReader {
          detector.Feed(b, 0, len);
       }
 
-      private bool AreEqual(byte[] array1, int maxBytes1, byte[] array2, int maxBytes2) {
+      private static bool AreEqual(byte[] array1, int maxBytes1, byte[] array2, int maxBytes2) {
          if (array1 == null && array2 == null)
             return true;
 

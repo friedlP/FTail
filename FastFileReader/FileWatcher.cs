@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,6 +16,8 @@ namespace FastFileReader {
 
       DateTime encodingValidationTime;
       bool fileModified;
+      volatile int fileModificationReported;
+      volatile int resetRequired;
       bool disposed;
 
       protected override Stream GetStream() {
@@ -56,13 +59,34 @@ namespace FastFileReader {
          Dispose(false);
       }
 
+      public override Encoding Encoding {
+         get {
+            CheckForFileModifications();
+            return base.Encoding;
+         }
+      }
+
+      public override LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt) {
+         CheckForFileModifications();
+         return base.ReadRange(position, origin, maxPrev, maxNext, maxPrevExt, maxNExtExt);
+      }
+
       protected override void EncodingValidated() {
          encodingValidationTime = DateTime.UtcNow;
          fileModified = false;
       }
 
       protected override bool EncodingValidationRequired() {
-         return fileModified && DateTime.UtcNow > encodingValidationTime.AddSeconds(1);
+         return fileModified && DateTime.UtcNow > encodingValidationTime.AddSeconds(.1);
+      }
+
+      protected void CheckForFileModifications() {
+         if (Interlocked.Exchange(ref fileModificationReported, 0) != 0) {
+            fileModified = true;
+         }
+         if (Interlocked.Exchange(ref resetRequired, 0) != 0) {
+            Reset();
+         }
       }
 
       protected override void Reset() {
@@ -73,27 +97,28 @@ namespace FastFileReader {
       }
       
       private void Fsw_Error(object sender, ErrorEventArgs e) {
-         HandleError(e.GetException());
+         resetRequired = 1;
+         ReportError(e.GetException());
       }
 
       private void Fsw_Renamed(object sender, RenamedEventArgs e) {
-         Reset();
-         HandleStreamChanged();
+         resetRequired = 1;
+         ReportStreamChanged();
       }
 
       private void Fsw_Deleted(object sender, FileSystemEventArgs e) {
-         Reset();
-         HandleStreamChanged();
+         resetRequired = 1;
+         ReportStreamChanged();
       }
 
       private void Fsw_Created(object sender, FileSystemEventArgs e) {
-         Reset();
-         HandleStreamChanged();
+         resetRequired = 1;
+         ReportStreamChanged();
       }
 
       private void Fsw_Changed(object sender, FileSystemEventArgs e) {
-         fileModified = true;
-         HandleStreamChanged();
+         fileModificationReported = 1;
+         ReportStreamChanged();
       }
 
       public override void Dispose() {
