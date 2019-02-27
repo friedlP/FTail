@@ -72,7 +72,7 @@ namespace FastFileReader
 
       private Encoding CurEncoding => encoding ?? Encoding.Default;
 
-      public virtual LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt)
+      public virtual LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNextExt)
       {
          Stream stream = null;
          try
@@ -99,7 +99,7 @@ namespace FastFileReader
             List<Extent> prevExtent = new List<Extent>();
             List<Extent> nextExtent = new List<Extent>();
 
-            curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
+            curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNextExt, prev, next, prevExtent, nextExtent);
 
             int enc = CurEncoding.CodePage;
 
@@ -117,7 +117,7 @@ namespace FastFileReader
             {
                // Read line again with new encoding
                lineReader = new LineReader(stream, CurEncoding);
-               curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNExtExt, prev, next, prevExtent, nextExtent);
+               curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNextExt, prev, next, prevExtent, nextExtent);
             }
 
             if (CurEncoding.CodePage != cp)
