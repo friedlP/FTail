@@ -60,7 +60,8 @@ namespace FastFileReader
             }
             else
             {
-               GetEncoding(GetStream());
+               GetEncoding(stream);
+               CloseStream(stream);
             }
          }
          catch (Exception e)
@@ -122,8 +123,10 @@ namespace FastFileReader
             if (CurEncoding.CodePage != cp)
                EcondingChanged?.Invoke(this, CurEncoding);
 
-            return new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l),
-                                 prevExtent, nextExtent, lineReader.StreamLength);
+            LineRange lineRange = new LineRange(curLine, prev.ConvertAll<Line>(l => (Line)l), next.ConvertAll<Line>(l => (Line)l),
+                                                prevExtent, nextExtent, lineReader.StreamLength);
+            CloseStream(stream);
+            return lineRange;
          }
          catch (Exception e)
          {
