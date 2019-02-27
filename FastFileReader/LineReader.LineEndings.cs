@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
 
-namespace FastFileReader {
-   public partial class LineReader {
-      class LineEndings {
+namespace FastFileReader
+{
+   public partial class LineReader
+   {
+      class LineEndings
+      {
          public const byte CR = (byte)'\r';
          public const byte LF = (byte)'\n';
          const int carriageReturn = CR;
@@ -12,8 +15,10 @@ namespace FastFileReader {
             lineFeed
          };
          public virtual IEnumerable<uint> CodePoints => stdLineEndings;
-         public virtual bool IsLNewLine(uint val) {
-            for (int i = 0; i < stdLineEndings.Length; ++i) {
+         public virtual bool IsLNewLine(uint val)
+         {
+            for (int i = 0; i < stdLineEndings.Length; ++i)
+            {
                if (val == stdLineEndings[i])
                   return true;
             }

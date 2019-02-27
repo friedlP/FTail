@@ -6,9 +6,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FastFileReader {
+namespace FastFileReader
+{
 
-   public partial class FileWatcher : EncodingDetectionReader {
+   public partial class FileWatcher : EncodingDetectionReader
+   {
       static int instanceCount;
       string fileName;
       FileSystemWatcher fsw;
@@ -20,24 +22,34 @@ namespace FastFileReader {
       volatile int resetRequired;
       bool disposed;
 
-      protected override Stream GetStream() {
-         if (File.Exists(fileName)) {
+      protected override Stream GetStream()
+      {
+         if (File.Exists(fileName))
+         {
             return new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-         } else {
+         }
+         else
+         {
             return null;
-         }         
-      }
-
-      protected override void CloseStream(Stream stream) {
-         try {
-            if (stream != null) {
-               stream.Dispose();
-            }
-         } catch {
          }
       }
 
-      public FileWatcher(string fileName) {
+      protected override void CloseStream(Stream stream)
+      {
+         try
+         {
+            if (stream != null)
+            {
+               stream.Dispose();
+            }
+         }
+         catch
+         {
+         }
+      }
+
+      public FileWatcher(string fileName)
+      {
          ++instanceCount;
 
          this.fileName = Path.GetFullPath(fileName);
@@ -55,7 +67,8 @@ namespace FastFileReader {
          fc.Start();
       }
 
-      ~FileWatcher() {
+      ~FileWatcher()
+      {
          Dispose(false);
       }
 
@@ -66,72 +79,87 @@ namespace FastFileReader {
          }
       }
 
-      public override LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt) {
+      public override LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt)
+      {
          CheckForFileModifications();
          return base.ReadRange(position, origin, maxPrev, maxNext, maxPrevExt, maxNExtExt);
       }
 
-      protected override void EncodingValidated() {
+      protected override void EncodingValidated()
+      {
          encodingValidationTime = DateTime.UtcNow;
          fileModified = false;
       }
 
-      protected override bool EncodingValidationRequired() {
+      protected override bool EncodingValidationRequired()
+      {
          return fileModified && DateTime.UtcNow > encodingValidationTime.AddSeconds(.1);
       }
 
-      protected void CheckForFileModifications() {
-         if (Interlocked.Exchange(ref fileModificationReported, 0) != 0) {
+      protected void CheckForFileModifications()
+      {
+         if (Interlocked.Exchange(ref fileModificationReported, 0) != 0)
+         {
             fileModified = true;
          }
-         if (Interlocked.Exchange(ref resetRequired, 0) != 0) {
+         if (Interlocked.Exchange(ref resetRequired, 0) != 0)
+         {
             Reset();
          }
       }
 
-      protected override void Reset() {
+      protected override void Reset()
+      {
          base.Reset();
 
          encodingValidationTime = DateTime.UtcNow;
          fileModified = false;
       }
-      
-      private void Fsw_Error(object sender, ErrorEventArgs e) {
+
+      private void Fsw_Error(object sender, ErrorEventArgs e)
+      {
          resetRequired = 1;
          ReportError(e.GetException());
       }
 
-      private void Fsw_Renamed(object sender, RenamedEventArgs e) {
+      private void Fsw_Renamed(object sender, RenamedEventArgs e)
+      {
          resetRequired = 1;
          ReportStreamChanged();
       }
 
-      private void Fsw_Deleted(object sender, FileSystemEventArgs e) {
+      private void Fsw_Deleted(object sender, FileSystemEventArgs e)
+      {
          resetRequired = 1;
          ReportStreamChanged();
       }
 
-      private void Fsw_Created(object sender, FileSystemEventArgs e) {
+      private void Fsw_Created(object sender, FileSystemEventArgs e)
+      {
          resetRequired = 1;
          ReportStreamChanged();
       }
 
-      private void Fsw_Changed(object sender, FileSystemEventArgs e) {
+      private void Fsw_Changed(object sender, FileSystemEventArgs e)
+      {
          fileModificationReported = 1;
          ReportStreamChanged();
       }
 
-      public override void Dispose() {
+      public override void Dispose()
+      {
          Dispose(true);
          GC.SuppressFinalize(this);
       }
 
       // Protected implementation of Dispose pattern.
-      protected virtual void Dispose(bool disposing) {
+      protected virtual void Dispose(bool disposing)
+      {
          if (disposed)
             return;
 
-         if (disposing) {
+         if (disposing)
+         {
             fsw.EnableRaisingEvents = false;
          }
 

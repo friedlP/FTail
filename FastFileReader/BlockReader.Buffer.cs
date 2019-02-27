@@ -1,9 +1,13 @@
 ﻿using System;
 
-namespace FastFileReader {
-   partial class BlockReader {
-      protected class Buffer {
-         public class InternalSearchData : ISearchData {
+namespace FastFileReader
+{
+   partial class BlockReader
+   {
+      protected class Buffer
+      {
+         public class InternalSearchData : ISearchData
+         {
             public bool[] checkB0;
          }
 
@@ -33,29 +37,39 @@ namespace FastFileReader {
             }
          }
 
-         public Buffer() {
+         public Buffer()
+         {
             byteBuffer = new byte[32 * 1024];   // Always use multiple of 4 as size!
             begin = -1;
             end = -1;
          }
 
-         public bool Contains(long position) {
+         public bool Contains(long position)
+         {
             return end > begin && begin <= position && end > position;
          }
-         
-         public virtual uint ReadValue(long position) {
-            if (begin <= position && end > position) {
+
+         public virtual uint ReadValue(long position)
+         {
+            if (begin <= position && end > position)
+            {
                return byteBuffer[position - begin];
-            } else {
+            }
+            else
+            {
                throw new ArgumentOutOfRangeException(nameof(position));
             }
          }
 
-         public virtual bool TryReadValue(long position, out uint value) {
-            if (begin <= position && end > position) {
+         public virtual bool TryReadValue(long position, out uint value)
+         {
+            if (begin <= position && end > position)
+            {
                value = byteBuffer[position - begin];
                return true;
-            } else {
+            }
+            else
+            {
                value = 0;
                return false;
             }
@@ -67,34 +81,45 @@ namespace FastFileReader {
             }
          }
 
-         public long Dist(long position) {
-            if (position < begin) {
+         public long Dist(long position)
+         {
+            if (position < begin)
+            {
                return begin - position;
-            } else if (position >= end) {
+            }
+            else if (position >= end)
+            {
                return position - end + 1;
-            } else {
+            }
+            else
+            {
                return 0;
             }
          }
-         
-         public static InternalSearchData CreateSearchData(byte[] values) {
+
+         public static InternalSearchData CreateSearchData(byte[] values)
+         {
             InternalSearchData sd = new InternalSearchData();
             sd.checkB0 = new bool[256];
-            for (int i = 0; i < values.Length; ++i) {
+            for (int i = 0; i < values.Length; ++i)
+            {
                sd.checkB0[values[i]] = true;
             }
             return sd;
          }
 
-         public bool TryFindAnyForward(long pos, byte[] values, out long foundAt) {
+         public bool TryFindAnyForward(long pos, byte[] values, out long foundAt)
+         {
             return TryFindAnyForward(pos, CreateSearchData(values), out foundAt);
          }
 
-         public bool TryFindAnyBackward(long pos, byte[] values, out long foundAt) {
+         public bool TryFindAnyBackward(long pos, byte[] values, out long foundAt)
+         {
             return TryFindAnyBackward(pos, CreateSearchData(values), out foundAt);
          }
 
-         public unsafe bool TryFindAnyForward(long pos, InternalSearchData sd, out long foundAt) {
+         public unsafe bool TryFindAnyForward(long pos, InternalSearchData sd, out long foundAt)
+         {
             foundAt = -1;
             long curIdx = pos - begin;
             long length = end - begin;
@@ -107,12 +132,16 @@ namespace FastFileReader {
             if (byteBuffer == null || byteBuffer.Length < length)
                return false;
 
-            fixed (byte* buffer = byteBuffer) {
-               fixed (bool* chk = sd.checkB0) {
+            fixed (byte* buffer = byteBuffer)
+            {
+               fixed (bool* chk = sd.checkB0)
+               {
                   byte* bEnd = buffer + length;
                   byte* bCur = buffer + curIdx;
-                  while (bCur < bEnd) {
-                     if (*(chk + *(bCur))) {
+                  while (bCur < bEnd)
+                  {
+                     if (*(chk + *(bCur)))
+                     {
                         foundAt = begin + (bCur - buffer);
                         return true;
                      }
@@ -123,7 +152,8 @@ namespace FastFileReader {
             return false;
          }
 
-         public unsafe bool TryFindAnyBackward(long pos, InternalSearchData sd, out long foundAt) {
+         public unsafe bool TryFindAnyBackward(long pos, InternalSearchData sd, out long foundAt)
+         {
             foundAt = -1;
             long curIdx = pos - begin;
             long length = end - begin;
@@ -135,12 +165,16 @@ namespace FastFileReader {
                return false;
             if (byteBuffer == null || byteBuffer.Length < length)
                return false;
-            
-            fixed (byte* buffer = byteBuffer) {
-               fixed (bool* chk = sd.checkB0) {
+
+            fixed (byte* buffer = byteBuffer)
+            {
+               fixed (bool* chk = sd.checkB0)
+               {
                   byte* bCur = buffer + curIdx;
-                  while (bCur >= buffer) {
-                     if (*(chk + *(bCur))) {
+                  while (bCur >= buffer)
+                  {
+                     if (*(chk + *(bCur)))
+                     {
                         foundAt = begin + (bCur - buffer);
                         return true;
                      }
@@ -152,7 +186,8 @@ namespace FastFileReader {
             return false;
          }
 
-         public void ReadRange(long beginPos, long endPos, byte[] buffer, int bufferPos) {
+         public void ReadRange(long beginPos, long endPos, byte[] buffer, int bufferPos)
+         {
             if (begin < 0 || end < 0)
                throw new InvalidOperationException("Internal buffer has not been initialized yet");
             if (beginPos < begin)

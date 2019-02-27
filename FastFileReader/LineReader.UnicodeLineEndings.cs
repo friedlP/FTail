@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace FastFileReader {
-   public partial class LineReader {
-      class UnicodeLineEndings : LineEndings {
+namespace FastFileReader
+{
+   public partial class LineReader
+   {
+      class UnicodeLineEndings : LineEndings
+      {
          const int formFeed = '\u000C';
          const int newLine = '\u0085';
          const int lineSeparator = '\u2028';
@@ -15,10 +18,12 @@ namespace FastFileReader {
             paragraphSeparator
          };
          public override IEnumerable<uint> CodePoints => base.CodePoints.Concat(utfLineEndings);
-         public override bool IsLNewLine(uint val) {
+         public override bool IsLNewLine(uint val)
+         {
             if (base.IsLNewLine(val))
                return true;
-            for (int i = 0; i < utfLineEndings.Length; ++i) {
+            for (int i = 0; i < utfLineEndings.Length; ++i)
+            {
                if (val == utfLineEndings[i])
                   return true;
             }
