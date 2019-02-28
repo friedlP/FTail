@@ -25,6 +25,7 @@ namespace FastFileReader
       bool updateForced;
       bool disposed;
       TimeSpan minTimeBetweenUpdates = TimeSpan.FromMilliseconds(1);
+      Timer timer;
       object lockObject = new object();
 
       public TimeSpan MinTimeBetweenUpdates {
@@ -50,8 +51,7 @@ namespace FastFileReader
 
       ~LineBuffer()
       {
-         --instanceCount;
-         System.Diagnostics.Debug.WriteLine("~LineBuffer - Remaining instances: " + instanceCount);
+         Dispose(false);
       }
 
       private void Reader_StreamChanged(object sender)
@@ -73,36 +73,47 @@ namespace FastFileReader
                DateTime now = DateTime.UtcNow;
                TimeSpan sleep = (lastUpdate + MinTimeBetweenUpdates) - now;
                //System.Diagnostics.Debug.WriteLine("Check scheduled");
-               Task.Run(() =>
+               if (sleep <= TimeSpan.Zero)
                {
-                  if (sleep.Ticks > 0)
-                     Thread.Sleep(sleep);
-                  lock (lockObject)
-                  {
-                     if (disposed)
-                        return;
+                  Update();
+               }
+               else if (timer == null)
+               {
+                  timer = new Timer((state) => Update(), null, sleep, Timeout.InfiniteTimeSpan);
+               }
+               else
+               {
+                  timer.Change(sleep, Timeout.InfiniteTimeSpan);
+               }
+            }
+         }
+      }
 
-                     //System.Diagnostics.Debug.WriteLine("Execute check");
-                     lastUpdate = DateTime.UtcNow;
-                     updateScheduled = false;
-                     if (position >= 0 && origin == Origin.Begin || position < 0 && origin == Origin.End)
-                     {
-                        LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+      private void Update()
+      {
+         lock (lockObject)
+         {
+            if (disposed)
+               return;
 
-                        if (range != curState || updateForced)
-                        {
-                           updateForced = false;
-                           curState = range;
-                           //System.Diagnostics.Debug.WriteLine("Invoke listener");
-                           WatchedRangeChanged?.Invoke(this, curState);
-                        }
-                     }
-                     else
-                     {
-                        curState = null;
-                     }
-                  }
-               });
+            //System.Diagnostics.Debug.WriteLine("Execute check");
+            lastUpdate = DateTime.UtcNow;
+            updateScheduled = false;
+            if (position >= 0 && origin == Origin.Begin || position < 0 && origin == Origin.End)
+            {
+               LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+
+               if (range != curState || updateForced)
+               {
+                  updateForced = false;
+                  curState = range;
+                  //System.Diagnostics.Debug.WriteLine("Invoke listener");
+                  WatchedRangeChanged?.Invoke(this, curState);
+               }
+            }
+            else
+            {
+               curState = null;
             }
          }
       }
@@ -142,9 +153,29 @@ namespace FastFileReader
 
       public void Dispose()
       {
-         reader.Error -= Reader_Error;
-         reader.EcondingChanged -= Reader_EcondingChanged;
-         reader.StreamChanged -= Reader_StreamChanged;
+         Dispose(true);
+         GC.SuppressFinalize(this);
+      }
+
+      // Protected implementation of Dispose pattern.
+      protected virtual void Dispose(bool disposing)
+      {
+         if (disposed)
+            return;
+
+         if (disposing)
+         {
+            reader.Error -= Reader_Error;
+            reader.EcondingChanged -= Reader_EcondingChanged;
+            reader.StreamChanged -= Reader_StreamChanged;
+         }
+
+         timer?.Dispose();
+         timer = null;
+
+         --instanceCount;
+         System.Diagnostics.Debug.WriteLine("~LineBuffer - Remaining instances: " + instanceCount);
+
          disposed = true;
       }
    }
