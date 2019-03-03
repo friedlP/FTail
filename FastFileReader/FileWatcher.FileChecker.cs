@@ -34,9 +34,9 @@ namespace FastFileReader
             if (!isActive)
                return;
 
-            WeakReference weakReference = new WeakReference(this);
             if (timer == null)
             {
+               WeakReference weakReference = new WeakReference(this);
                timer = new Timer(new TimerCallback((o) =>
                {
                   FileChecker fc = (FileChecker)weakReference.Target;
