@@ -140,15 +140,30 @@ namespace FastFileReader
       {
          lock (lockObject)
          {
-            this.position = position;
-            this.origin = origin;
-            this.maxPrev = maxPrev;
-            this.maxFoll = maxFoll;
-            this.maxPrevExtent = maxPrevExtent;
-            this.maxFollExtent = maxFollExtent;
+            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
 
             CheckRange();
          }
+      }
+
+      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      {
+         lock (lockObject)
+         {
+            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+            Update();
+            return curState;
+         }
+      }
+
+      private void SetRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      {
+         this.position = position;
+         this.origin = origin;
+         this.maxPrev = maxPrev;
+         this.maxFoll = maxFoll;
+         this.maxPrevExtent = maxPrevExtent;
+         this.maxFollExtent = maxFollExtent;
       }
 
       public void Dispose()
