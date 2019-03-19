@@ -111,6 +111,53 @@ namespace FastFileReader
          }
       }
 
+      public int ExtentsCount {
+         get {
+            if (RequestedLine == null)
+               return 0;
+            return PreviousExtents.Count + PreviousLines.Count + 1 + NextLines.Count + NextExtents.Count;
+         }
+      }
+
+      public Extent RelExtent(long relLinePos)
+      {
+         if (relLinePos == 0)
+         {
+            return RequestedLine?.Extent;
+         }
+         else if (relLinePos > 0)
+         {
+            if (NextLines.Count >= relLinePos)
+            {
+               return NextLines[(int)relLinePos - 1].Extent;
+            }
+            else if (NextLines.Count + NextExtents.Count >= relLinePos)
+            {
+               return NextExtents[(int)relLinePos - NextLines.Count - 1];
+            }
+            else
+            {
+               return null;
+            }
+         }
+         else
+         {
+            relLinePos = -relLinePos;
+            if (PreviousLines.Count >= relLinePos)
+            {
+               return PreviousLines[PreviousLines.Count - (int)relLinePos].Extent;
+            }
+            else if (PreviousLines.Count + PreviousExtents.Count >= relLinePos)
+            {
+               return PreviousExtents[PreviousExtents.Count - ((int)relLinePos - PreviousLines.Count)];
+            }
+            else
+            {
+               return null;
+            }
+         }
+      }
+
       public override int GetHashCode()
       {
          var hashCode = 387268372;
