@@ -1,6 +1,7 @@
 ﻿using ScintillaNET;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,7 @@ namespace STextViewControl {
    /// </summary>
    public partial class STextView : UserControl {
       public event EventHandler<UpdateUIEventArgs> UpdateUI;
+      bool thumbFixed;
 
       public STextView() {
          InitializeComponent();
@@ -37,7 +39,9 @@ namespace STextViewControl {
       }
       
       private void VScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
+         //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(VScrollBar_ValueChanged)}]: old={e.OldValue}, new={e.NewValue}, thumbFixed={thumbFixed}");
          (double startValue, double endValue) = GetValueRange(vScrollBar);
+         Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(VScrollBar_ValueChanged)}]: start={startValue}, end={endValue}");
          sTextBox.SetVScroll(startValue, endValue);
       }
 
@@ -85,6 +89,18 @@ namespace STextViewControl {
                scrollBar.SetThumbCenter(newThumbCenter);
             }
          }
+      }
+
+      private void vScrollBar_GotMouseCapture(object sender, MouseEventArgs e) {
+         thumbFixed = ((System.Windows.Controls.Primitives.ScrollBar)sender).Track.Thumb.IsMouseCaptured;
+         sTextBox.SetThumbFixed(thumbFixed);
+         //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(vScrollBar_GotMouseCapture)}]: captured={thumbFixed}");
+      }
+
+      private void vScrollBar_LostMouseCapture(object sender, MouseEventArgs e) {
+         //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(vScrollBar_LostMouseCapture)}]: wasCaptured={thumbFixed}");
+         thumbFixed = false;
+         sTextBox.SetThumbFixed(false);
       }
    }
 }

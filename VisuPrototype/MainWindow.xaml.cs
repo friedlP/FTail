@@ -1,6 +1,8 @@
 ﻿using FastFileReader;
+using STextViewControl;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,14 +22,24 @@ namespace VisuPrototype {
    /// </summary>
    public partial class MainWindow : Window {
       FileWatcher fw;
-      LineBuffer lb;
-      LineRange lineRange;
+      object locker = new object();
+
+      ScrollLogic sl;
 
       public MainWindow() {
+         
+
          InitializeComponent();
-         textBox.Styles[0].Font = "Courier New";
-         textBox.Styles[0].Size = 9;
+
+         //STextBox.SetVisibleRangeCalculator(VisibleRangeCalculator);
+         //STextBox.SetVerticalScrollHandler(VScrollHandler);
+
+         STextBox.Styles[0].Font = "Courier New";
+         STextBox.Styles[0].Size = 9;
+         STextBox.ReadOnly = true;
       }
+
+      STextBox STextBox => textBox.STextBox;
 
       private void Lb_EcondingChanged(object sender, Encoding enc) {
          if (Dispatcher.CheckAccess()) {
@@ -39,98 +51,30 @@ namespace VisuPrototype {
          }
       }
 
-      private void Lb_WatchedRangeChanged(object sender, LineRange range) {
-         lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
-         lineRange = range;
-         UpdateText(lineRange);
-      }
 
-      private void UpdateText(LineRange range) {
-         if (Dispatcher.CheckAccess()) {
-            SetText(range);
-         } else {
-            Dispatcher.BeginInvoke(new Action(() => {
-               SetText(range);
-            }));
-         }
-      }
-
-      private void SetText(LineRange range) {
-         int maxLines = textBox.LinesOnScreen;
-         StringBuilder stringBuilder = new StringBuilder();
-         
-         if (range != null) {
-            List<FastFileReader.Line> lines = range.AllLines.ToList();
-
-            if (lines.Count > maxLines)
-               lines.RemoveRange(0, lines.Count - maxLines);
-
-            lines.ForEach(l => stringBuilder.AppendLine(l.Content.TrimEnd()));
-
-            double relBeginPos = 0;
-            double relEndPos = 1;
-            if (lines.Count > 0) {
-               Extent firstVisibleLineExtent = lines[0].Extent;
-               Extent lastVisibleLineExtent = lines[lines.Count - 1].Extent;
-
-               Extent firstLoadedExtent = range.FirstExtent;
-               Extent lastLoadedExtent = range.LastExtent;
-
-               int relLineNoFirstVisible = 0;
-               int relLineNoLastVisible = 0;
-               int n = range.PreviousExtents.Count;
-               foreach (var line in range.AllLines) {
-                  if (firstVisibleLineExtent == line.Extent)
-                     relLineNoFirstVisible = n;
-                  if (lastVisibleLineExtent == line.Extent)
-                     relLineNoLastVisible = n;
-                  ++n;
-               }
-               n += range.NextExtents.Count;
-
-               double relPosFirstInLoaded = (double)relLineNoFirstVisible / n;
-               double relPosLastInLoaded = (double)(relLineNoLastVisible + 1) / n;
-
-               double relPosFirstLoaded = (double)firstLoadedExtent.Begin / range.StreamLength;
-               double relPosLastLoaded = (double)lastLoadedExtent.End / range.StreamLength;
-
-               double loadedPart = relPosLastLoaded - relPosFirstLoaded;
- 
-               relBeginPos = relPosFirstLoaded + loadedPart * relPosFirstInLoaded;
-               relEndPos = relPosFirstLoaded + loadedPart * relPosLastInLoaded;
-            }
-            System.Diagnostics.Debug.WriteLine($"Begin: {relBeginPos}, End: {relEndPos}");
-            vertScrollBar.SetThumbLength(relEndPos - relBeginPos);
-            vertScrollBar.SetThumbCenter((relBeginPos + relEndPos) / 2);
-         }
-         string text = stringBuilder.ToString();
-         if (textBox.Text != text) {
-            textBox.ReadOnly = false;
-            textBox.Text = text;
-            textBox.ReadOnly = true;
-         }
-      }
-
-      private void textBox_SizeChanged(object sender, EventArgs e) {
-         UpdateText(lineRange);
-         //lb?.ForceUpdate();
-      }
-
-      private void miOpenFile_Click(object sender, RoutedEventArgs e) {
+      private void MiOpenFile_Click(object sender, RoutedEventArgs e) {
          Microsoft.Win32.OpenFileDialog fileBrowserDialog = new Microsoft.Win32.OpenFileDialog();
          fileBrowserDialog.RestoreDirectory = true;
          fileBrowserDialog.Multiselect = false;
          if (fileBrowserDialog.ShowDialog() == true) {
             fw?.Dispose();
-            lb?.Dispose();
+            //lb?.Dispose();
 
             fw = new FileWatcher(fileBrowserDialog.FileName);
-            lb = new LineBuffer(fw);
+            Lb_EcondingChanged(this, fw.Encoding);
+            fw.EcondingChanged += Lb_EcondingChanged;
+            
+            //lb = new LineBuffer(fw);
 
-            lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
-            lb.EcondingChanged += Lb_EcondingChanged;
-            lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
-            lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
+            sl = new ScrollLogic(fw);
+            STextBox.ScrollLogic = sl;
+            sl.Init(0, Origin.Begin, STextBox.LinesOnScreen);
+
+            //lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
+            
+            //lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
+            //lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
+            //lb.WatchRange(0, Origin.Begin, bufferLines, bufferLines, 1000, 1000);
          }
       }
    }

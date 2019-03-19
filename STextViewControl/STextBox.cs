@@ -27,6 +27,18 @@ namespace STextViewControl {
       }
    }
 
+   public delegate void ScrollBarParameterChangedHandler(object sender, ScrollBarParameter newScrollBarParameter);
+   public delegate void TextChangedHandler(object sender, string newText);
+
+   public interface IScrollLogic
+   {
+      event ScrollBarParameterChangedHandler VScrollBarParameterChanged;
+      event TextChangedHandler TextChanged;
+      void SetVScroll(double startValue, double endValue);
+      void VScroll(long scrollLines);
+      void SizeChanged(int firstVisibleLine, int linesOnScreen);
+   }
+
    public class STextBox : Scintilla {
       int scrollLines = System.Windows.Forms.SystemInformation.MouseWheelScrollLines;
 
@@ -34,9 +46,46 @@ namespace STextViewControl {
       public event ScrollBarValueChangedEventHandler VScrollBarValueChanged;
       public ScrollBarParameter HScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
       public ScrollBarParameter VScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
-      VisibleRangeCalculator vRangeCalc = VisibleRange;
-      VScrollHandler vScrollHandler = HandleVScroll;
-            
+
+      IScrollLogic scrollLogic;
+      public IScrollLogic ScrollLogic {
+         get {
+            return scrollLogic;
+         }
+         set {
+            if (scrollLogic != null)
+            {
+               scrollLogic.TextChanged -= OnTextChanged;
+               scrollLogic.VScrollBarParameterChanged -= OnVScrollBarParameterChanged;
+            }
+            scrollLogic = value;
+            scrollLogic.TextChanged += OnTextChanged;
+            scrollLogic.VScrollBarParameterChanged += OnVScrollBarParameterChanged;
+         }
+      }
+
+      protected void OnTextChanged(object sender, string newText)
+      {
+         base.Document = new ScintillaNET.Document();
+         base.ReadOnly = false;
+         base.Text = newText;
+         base.ReadOnly = true;
+      }
+
+      protected void OnVScrollBarParameterChanged(object sender, ScrollBarParameter newScrollBarParameter)
+      {
+         VScrollBarValue = newScrollBarParameter;
+         if (!thumbFixed)
+         {
+            VScrollBarValueChanged?.Invoke(this, newScrollBarParameter);
+            vScrollBarNeedsUpdate = false;
+         }
+         else
+         {
+            vScrollBarNeedsUpdate = true;
+         }
+      }
+
       protected override bool ProcessCmdKey(ref Message msg, Keys keyData) {
          switch (keyData) {
             case Keys.Left:
@@ -67,10 +116,15 @@ namespace STextViewControl {
 
          return base.ProcessCmdKey(ref msg, keyData);
       }
-      
+
+      public void DataUpdated() {
+         ValidateAndUpdateXOffset();
+      }
+
       protected override void OnSizeChanged(EventArgs e) {
          ValidateAndUpdateXOffset();
-         VScroll(0, 0);
+
+         ScrollLogic?.SizeChanged(base.FirstVisibleLine, base.LinesOnScreen);
          base.OnSizeChanged(e);
       }
 
@@ -83,8 +137,10 @@ namespace STextViewControl {
             } else {
                VScroll(sign * scrollLines);
             }
-            var he = e as HandledMouseEventArgs;
-            if (he != null) he.Handled = true;
+            if (e is HandledMouseEventArgs he)
+            {
+               he.Handled = true;
+            }
          } 
       }
 
@@ -93,7 +149,7 @@ namespace STextViewControl {
             ValidateAndUpdateXOffset();
          }
          if ((e.Change & UpdateChange.VScroll) != 0) {
-            UpdateVScrollBar();
+            //UpdateVScrollBar(false);
          }
          base.OnUpdateUI(e);
       }
@@ -106,6 +162,9 @@ namespace STextViewControl {
       }
 
       bool insideValidateAndUpdateXOffset;
+      bool thumbFixed;
+      bool vScrollBarNeedsUpdate;
+
       private void ValidateAndUpdateXOffset() {
          if (insideValidateAndUpdateXOffset)
             return;
@@ -116,6 +175,15 @@ namespace STextViewControl {
             IValidateAndUpdateXOffset();
          } finally {
             insideValidateAndUpdateXOffset = false;
+         }
+      }
+
+      public void SetThumbFixed(bool thumbFixed) {
+         this.thumbFixed = thumbFixed;
+         if (!thumbFixed && vScrollBarNeedsUpdate)
+         {
+            VScrollBarValueChanged?.Invoke(this, VScrollBarValue);
+            vScrollBarNeedsUpdate = false;
          }
       }
 
@@ -151,7 +219,7 @@ namespace STextViewControl {
 
          (double smallChange, double largeChange) = CalcScrollChange(min, max, textAreaWidth, hScrollPix);
 
-         Debug.WriteLine($"HScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
+         //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] HScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
          HScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
          HScrollBarValueChanged?.Invoke(this, HScrollBarValue);
       }
@@ -173,77 +241,22 @@ namespace STextViewControl {
             base.XOffset = xOff;
          }
       }
-
-      public void SetVisibleRangeCalculator(VisibleRangeCalculator vRangeCalculator) {
-         this.vRangeCalc = vRangeCalculator ?? VisibleRange;
-      }
-
-      private (double min, double max) GetVisibleRange(int lines, int firstVisibleLine, int linesOnScreen) {
-         (double min, double max) = vRangeCalc(lines, firstVisibleLine, linesOnScreen);
-         return (ToRange(min, 0, 1), ToRange(max, 0, 1));
-      }
-
-      private static (double min, double max) VisibleRange(int lines, int firstVisibleLine, int linesOnScreen) {
-         double min = 0;
-         double max = 1;
-         if (lines > 0) {
-            min = ToRange((double)firstVisibleLine / lines, 0, 1);
-            max = ToRange((double)(firstVisibleLine + linesOnScreen) / lines, 0, 1);
-         }
-         return (min, max);
-      }
-
-      public void SetVerticalScrollHandler(VScrollHandler vScrollHandler) {
-         this.vScrollHandler = vScrollHandler ?? HandleVScroll;
-      }
-
-      private static void HandleVScroll(STextBox sTextBox, double scroll, long scrollLines) {
-         sTextBox.LineScroll((int)scrollLines, 0);
-      }
-
-      private void UpdateVScrollBar() {
-         int lines = base.Lines.Count;
-         int firstVisLine = base.FirstVisibleLine;
-         int linesOnScreen = base.LinesOnScreen;
-
-         (double min, double max) = GetVisibleRange(lines, firstVisLine, linesOnScreen);
-         (double smallChange, double largeChange) = CalcScrollChange(min, max, linesOnScreen, 1);
-
-         Debug.WriteLine($"VScroll: min={min}, max={max}, smallChange={smallChange}, largeChange={largeChange}");
-         VScrollBarValue = new ScrollBarParameter(min, max, smallChange, largeChange);
-         VScrollBarValueChanged?.Invoke(this, VScrollBarValue);
+            
+      public void SetVScroll(double startValue, double endValue) {
+         ScrollLogic?.SetVScroll(startValue, endValue);
       }
       
-      public void SetVScroll(double startValue, double endValue) {
-         double vPrev = 1 - (VScrollBarValue.EndValue - VScrollBarValue.StartValue);
-         double scrollPositionPrev = vPrev > 0 ? VScrollBarValue.StartValue / vPrev : 0;
-
-         double v = 1 - (endValue - startValue);
-         double scrollPosition = v > 0 ? startValue / v : 0;
-
-         double lineChange = VScrollBarValue.SmallChange;
-         double diff = scrollPosition - scrollPositionPrev;
-
-         double dLines = diff / lineChange;
-         int diffLines = dLines < 0 ? -(int)(-dLines + .5) : (int)(dLines + .5);
-
-         if (diffLines != 0)
-            VScroll(diff, diffLines);
-      }
-
       private void VScroll(long scrollLines) {
-         VScroll(scrollLines * VScrollBarValue.SmallChange, scrollLines);
-      }
-
-      private void VScroll(double scroll, long scrollLines) {
-         Debug.WriteLine($"VScroll: scroll={scroll}, scrollLines={scrollLines}");
-         vScrollHandler(this, scroll, scrollLines);
-         UpdateVScrollBar();
+         if (!thumbFixed)
+         {
+            ScrollLogic?.VScroll(scrollLines);
+         }
       }
 
       private static double ToRange(double val, double min, double max) => val < min ? min : (val > max ? max : val);
 
-      private (double smallChange, double largeChange) CalcScrollChange(double min, double max, double visibleSize, double scrollOne) {
+      private (double smallChange, double largeChange) CalcScrollChange(double min, double max, double visibleSize, double scrollOne)
+      {
          min = ToRange(min, 0, 1);
          max = ToRange(max, 0, 1);
          if (min >= max || visibleSize <= 0)

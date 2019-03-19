@@ -10,7 +10,7 @@
             <WindowsFormsHost Margin="0,0,17,17">
                 <local:STextBox x:Name="sTextBox" UpdateUI="STextBox_UpdateUI" VScrollBar="False" HScrollBarValueChanged="STextBox_HScrollBarValueChanged" VScrollBarValueChanged="STextBox_VScrollBarValueChanged" BorderStyle="None" ScrollWidth="1000" />
             </WindowsFormsHost>
-            <ScrollBar x:Name="vScrollBar" Width="17" HorizontalAlignment="Right" Margin="0,0,0,17" Maximum="1" ValueChanged="VScrollBar_ValueChanged" LargeChange="0.1" SmallChange="0.01" />
+            <ScrollBar x:Name="vScrollBar" Width="17" HorizontalAlignment="Right" Margin="0,0,0,17" Maximum="1" ValueChanged="VScrollBar_ValueChanged" LargeChange="0.1" SmallChange="0.01" GotMouseCapture="vScrollBar_GotMouseCapture" LostMouseCapture="vScrollBar_LostMouseCapture" />
             <ScrollBar x:Name="hScrollBar" VerticalAlignment="Bottom" Margin="0,0,17,0" Height="17" Orientation="Horizontal" Maximum="1" ValueChanged="HScrollBar_ValueChanged" LargeChange="0.1" SmallChange="0.01"/>
         </Grid>
     </DockPanel>

@@ -30,8 +30,8 @@ namespace STextViewScrollTest {
          maxLine = 200;
          firstLine = 0;
 
-         textBox.STextBox.SetVisibleRangeCalculator(VisibleRangeCalculator);
-         textBox.STextBox.SetVerticalScrollHandler(VScrollHandler);
+         //textBox.STextBox.SetVisibleRangeCalculator(VisibleRangeCalculator);
+         //textBox.STextBox.SetVerticalScrollHandler(VScrollHandler);
 
          VScrollHandler(textBox.STextBox, 0, 0);
       }
