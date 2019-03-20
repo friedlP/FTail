@@ -91,13 +91,13 @@ namespace STextViewControl {
          }
       }
 
-      private void vScrollBar_GotMouseCapture(object sender, MouseEventArgs e) {
+      private void VScrollBar_GotMouseCapture(object sender, MouseEventArgs e) {
          thumbFixed = ((System.Windows.Controls.Primitives.ScrollBar)sender).Track.Thumb.IsMouseCaptured;
          sTextBox.SetThumbFixed(thumbFixed);
          //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(vScrollBar_GotMouseCapture)}]: captured={thumbFixed}");
       }
 
-      private void vScrollBar_LostMouseCapture(object sender, MouseEventArgs e) {
+      private void VScrollBar_LostMouseCapture(object sender, MouseEventArgs e) {
          //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(vScrollBar_LostMouseCapture)}]: wasCaptured={thumbFixed}");
          thumbFixed = false;
          sTextBox.SetThumbFixed(false);
