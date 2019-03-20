@@ -28,15 +28,17 @@ namespace STextViewControl {
    }
 
    public delegate void ScrollBarParameterChangedHandler(object sender, ScrollBarParameter newScrollBarParameter);
-   public delegate void TextChangedHandler(object sender, string newText);
+   public delegate void TextChangedHandler(object sender, string newText, int newFirstVisibleLine);
+   public delegate void FirstVisibleLineChangedHandler(object sender, int newFirstVisibleLine);
 
    public interface IScrollLogic
    {
       event ScrollBarParameterChangedHandler VScrollBarParameterChanged;
       event TextChangedHandler TextChanged;
+      event FirstVisibleLineChangedHandler FirstVisibleLineChanged;
       void SetVScroll(double startValue, double endValue);
       void VScroll(long scrollLines);
-      void SizeChanged(int firstVisibleLine, int linesOnScreen);
+      void VisibleAreaChanged(int firstVisibleLine, int linesOnScreen);
    }
 
    public class STextBox : Scintilla {
@@ -56,20 +58,28 @@ namespace STextViewControl {
             if (scrollLogic != null)
             {
                scrollLogic.TextChanged -= OnTextChanged;
+               scrollLogic.FirstVisibleLineChanged -= OnFirstVisibleLineChanged;
                scrollLogic.VScrollBarParameterChanged -= OnVScrollBarParameterChanged;
             }
             scrollLogic = value;
             scrollLogic.TextChanged += OnTextChanged;
+            scrollLogic.FirstVisibleLineChanged += OnFirstVisibleLineChanged;
             scrollLogic.VScrollBarParameterChanged += OnVScrollBarParameterChanged;
          }
       }
 
-      protected void OnTextChanged(object sender, string newText)
+      protected void OnTextChanged(object sender, string newText, int newFirstVisibleLine)
       {
          base.Document = new ScintillaNET.Document();
          base.ReadOnly = false;
          base.Text = newText;
+         base.FirstVisibleLine = newFirstVisibleLine;
          base.ReadOnly = true;
+      }
+
+      protected void OnFirstVisibleLineChanged(object sender, int newFirstVisibleLine)
+      {
+         base.FirstVisibleLine = newFirstVisibleLine;
       }
 
       protected void OnVScrollBarParameterChanged(object sender, ScrollBarParameter newScrollBarParameter)
@@ -124,7 +134,7 @@ namespace STextViewControl {
       protected override void OnSizeChanged(EventArgs e) {
          ValidateAndUpdateXOffset();
 
-         ScrollLogic?.SizeChanged(base.FirstVisibleLine, base.LinesOnScreen);
+         ScrollLogic?.VisibleAreaChanged(base.FirstVisibleLine, base.LinesOnScreen);
          base.OnSizeChanged(e);
       }
 
@@ -149,7 +159,7 @@ namespace STextViewControl {
             ValidateAndUpdateXOffset();
          }
          if ((e.Change & UpdateChange.VScroll) != 0) {
-            //UpdateVScrollBar(false);
+            ScrollLogic?.VisibleAreaChanged(base.FirstVisibleLine, base.LinesOnScreen);
          }
          base.OnUpdateUI(e);
       }

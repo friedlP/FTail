@@ -11,6 +11,7 @@ namespace STextViewControl
    class ScrollLogic : IScrollLogic
    {
       public event ScrollBarParameterChangedHandler VScrollBarParameterChanged;
+      public event FirstVisibleLineChangedHandler FirstVisibleLineChanged;
       public event TextChangedHandler TextChanged;
 
       ScrollBarParameter curScrollBarParameter = new ScrollBarParameter(0, 1, 0.01, 0.1);
@@ -37,9 +38,11 @@ namespace STextViewControl
 
       public void Init(int position, Origin origin, int linesOnScreen)
       {
+         textViewLinesOnScreen = linesOnScreen;
+         UpdateRequiredBufferedLines();
+
          MonitorChanges(() =>
          {
-            textViewLinesOnScreen = linesOnScreen;
             UpdateRange(position, origin);
          });
       }
@@ -63,31 +66,44 @@ namespace STextViewControl
          });
       }
 
-      public void SizeChanged(int firstVisibleLine, int linesOnScreen)
+      public void VisibleAreaChanged(int firstVisibleLine, int linesOnScreen)
       {
+         int scroll = firstVisibleLine - textViewFirstVisibleLine;
+         bool linesOnScreenChanged = textViewLinesOnScreen != linesOnScreen;
+
+         textViewFirstVisibleLine = firstVisibleLine;
+         textViewLinesOnScreen = linesOnScreen;
+         if (linesOnScreenChanged)
+            UpdateRequiredBufferedLines();
+
          MonitorChanges(() =>
          {
-            if (textViewFirstVisibleLine != firstVisibleLine
-               || textViewLinesOnScreen != linesOnScreen)
+            if (scroll != 0)
             {
-               textViewFirstVisibleLine = firstVisibleLine;
-               textViewLinesOnScreen = linesOnScreen;
-
-               UpdateRequiredBufferedLines();
+               IntVScroll(scroll * curScrollBarParameter.SmallChange, scroll);
+            }
+            else if (linesOnScreenChanged)
+            {
                IntVScroll(force: true);
             }
-         });
+         });         
       }
 
       private void MonitorChanges(Action action)
       {
          var oldScrollBarParameter = curScrollBarParameter;
          var oldText = textViewText;
+         var oldFirstVisibleLine = textViewFirstVisibleLine;
          action();
          if (textViewText != oldText)
          {
-            TextChanged?.Invoke(this, textViewText);
+            TextChanged?.Invoke(this, textViewText, textViewFirstVisibleLine);
          }
+         else if (textViewFirstVisibleLine != oldFirstVisibleLine)
+         {
+            FirstVisibleLineChanged?.Invoke(this, textViewFirstVisibleLine);
+         }
+
          if(ScrollBarParameterChanged(oldScrollBarParameter, curScrollBarParameter))
          {
             VScrollBarParameterChanged?.Invoke(this, curScrollBarParameter);
@@ -320,38 +336,39 @@ namespace STextViewControl
          SetText(lineRange, origin);
       }
 
+      private static long Min(long a, long b) => a < b ? a : b;
+      private static long Max(long a, long b) => a > b ? a : b;
+
       private void SetText(LineRange range, Origin origin)
       {
          int maxLines = textViewLinesOnScreen;
          StringBuilder stringBuilder = new StringBuilder();
+         int firstVisibleLine = 0;
 
          if (range != null)
          {
-            List<FastFileReader.Line> lines = new List<FastFileReader.Line>();
-            if (origin == Origin.Begin)
+            int prev = (int)Min(50 + (origin == Origin.End ? maxLines : 0), range.PreviousLines.Count);
+            int next = (int)Min(50 + (origin == Origin.Begin ? maxLines : 0), range.NextLines.Count);
+            firstVisibleLine = (origin == Origin.Begin) ? prev : (int)Max(prev - maxLines, 0);
+            List <FastFileReader.Line> lines = new List<FastFileReader.Line>();
+            for (int i = 0; i < prev; ++i)
             {
-               if (range.RequestedLine != null) lines.Add(range.RequestedLine);
-               for (int i = 0; i <= maxLines && i < range.NextLines.Count; ++i)
-               {
-                  lines.Add(range.NextLines[i]);
-               }
+               lines.Add(range.PreviousLines[range.PreviousLines.Count - prev + i]);
             }
-            else
+            if (range.RequestedLine != null) lines.Add(range.RequestedLine);
+            for (int i = 0; i < next; ++i)
             {
-               for (int i = 0; i<=maxLines && i < range.PreviousLines.Count; ++i)
-               {
-                  lines.Add(range.PreviousLines[range.PreviousLines.Count - 1 - i]);
-               }
-               if (range.RequestedLine != null) lines.Add(range.RequestedLine);
+               lines.Add(range.NextLines[i]);
             }
-
+            
             lines.ForEach(l => stringBuilder.AppendLine(l.Content.TrimEnd()));
          }
          string text = stringBuilder.ToString().TrimEnd(new char[] { '\r', '\n' });
-         if (textViewText != text)
+         if (textViewText != text || textViewFirstVisibleLine != firstVisibleLine)
          {
             //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(ScrollLogic)}.{nameof(SetText)}] Update Text: {lineRange.RequestedLine.Content}");
             textViewText = text;
+            textViewFirstVisibleLine = firstVisibleLine;
             DataUpdated();
          }
       }
