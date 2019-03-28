@@ -5,8 +5,10 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using STextViewControl;
+using static VisuPrototype.MathTools;
 
-namespace STextViewControl
+namespace VisuPrototype
 {
    class ScrollLogic : IScrollLogic
    {
@@ -120,7 +122,7 @@ namespace STextViewControl
 
       private void IntSetVScroll(double startValue, double endValue)
       {
-         (double diff, int diffLines) = GetChange(curScrollBarParameter.StartValue, curScrollBarParameter.EndValue, startValue, endValue);
+         (double diff, long diffLines) = GetChange(curScrollBarParameter.StartValue, curScrollBarParameter.EndValue, startValue, endValue);
 
          if (diffLines != 0)
             IntVScroll(diff, diffLines);
@@ -132,8 +134,8 @@ namespace STextViewControl
          UpdateVScrollBar();
       }
 
-      private long FullyVisibleLines => textViewLinesOnScreen;
-      private long PartiallyVisibleLines => FullyVisibleLines + 1;
+      private int FullyVisibleLines => textViewLinesOnScreen;
+      private int PartiallyVisibleLines => FullyVisibleLines + 1;
 
       private void VScrollHandler(double scroll, long scrollLines, bool force)
       {
@@ -179,14 +181,14 @@ namespace STextViewControl
             {
                origin = Origin.Begin;
                pos = ToRange(RoundToLongRange(lineRange.RequestedLine.Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = Round(cFactor * (sValue * streamLenMod - pos));
+               long p = RoundToLongRange(cFactor * (sValue * streamLenMod - pos));
                pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
             }
             else
             {
                origin = Origin.End;
                pos = ToRange(RoundToLongRange(LineAt((int)linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = Round(cFactor * (sValue * streamLenMod - pos));
+               long p = RoundToLongRange(cFactor * (sValue * streamLenMod - pos));
                pos = ToRange(pos - p, 0, lineRange.StreamLength - 1);
                pos -= lineRange.StreamLength;   // From the end
             }
@@ -201,61 +203,15 @@ namespace STextViewControl
          int nextLineCount = lineRange.NextLines.Count;
          if (line > 0 && nextLineCount > 0)
          {
-            return lineRange.NextLines[(int)ToRange(line - 1, 0, nextLineCount - 1)];
+            return lineRange.NextLines[ToRange(line - 1, 0, nextLineCount - 1)];
          }
          else if (line < 0 && prevLineCount > 0)
          {
-            return lineRange.PreviousLines[prevLineCount - 1 - (int)ToRange(-line - 1, 0, prevLineCount - 1)];
+            return lineRange.PreviousLines[prevLineCount - 1 - ToRange(-line - 1, 0, prevLineCount - 1)];
          }
          else
          {
             return lineRange.RequestedLine;
-         }
-      }
-
-      private long Round(double value)
-      {
-         return value > 0 ? (long)(value + 0.5) : -(long)(-value + .5);
-      }
-
-      private long RoundToLongRange(double value)
-      {
-         if (value > long.MaxValue)
-            return long.MaxValue;
-         else if (value < long.MinValue)
-            return long.MinValue;
-         else
-         {
-            long rValue = Round(value);
-            if (value > long.MaxValue / 2 && rValue < 0)
-               return long.MaxValue;
-            else if (value < long.MinValue / 2 && rValue > 0)
-               return long.MinValue;
-            else
-               return rValue;
-         }
-      }
-
-      private long AddInLongRange(long value1, long value2)
-      {
-         long sum = value1 + value2;
-         if (value1 > 0 && value2 > 0)
-         {
-            if (sum < Max(value1, value2))
-               return long.MaxValue;
-            else
-               return sum;
-         }
-         else if (value1 < 0 && value2 < 0)
-         {
-            if (sum > Min(value1, value2))
-               return long.MinValue;
-            else
-               return sum;
-         }
-         else
-         {
-            return sum;
          }
       }
 
@@ -346,16 +302,13 @@ namespace STextViewControl
          return (relBeginPos, relEndPos);
       }
 
-      private static double ToRange(double val, double min, double max) => val < min ? min : (val > max ? max : val);
-      private static long ToRange(long val, long min, long max) => val < min ? min : (val > max ? max : val);
-
       static double ScrollPos(double startValue, double endValue)
       {
          double v = 1 - (endValue - startValue);
          return v > 0 ? startValue / v : 0;
       }
 
-      private (double diff, int diffLines) GetChange(double oldStartValue, double oldEndValue, double newStartValue, double newEndValue)
+      private (double diff, long diffLines) GetChange(double oldStartValue, double oldEndValue, double newStartValue, double newEndValue)
       {
          double scrollPositionPrev = ScrollPos(oldStartValue, oldEndValue);
          double scrollPosition = ScrollPos(newStartValue, newEndValue);
@@ -364,7 +317,7 @@ namespace STextViewControl
          double diff = scrollPosition - scrollPositionPrev;
 
          double dLines = diff / lineChange;
-         int diffLines = (int)Round(dLines);
+         long diffLines = RoundToLongRange(dLines);
 
          //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(ScrollLogic)}.{nameof(GetChange)}] Change: {scrollPositionPrev} -> {scrollPosition}, diff={diff}, lines={diffLines}");
 
@@ -376,9 +329,6 @@ namespace STextViewControl
          lineRange = range;
          SetText(lineRange, origin);
       }
-
-      private static long Min(long a, long b) => a < b ? a : b;
-      private static long Max(long a, long b) => a > b ? a : b;
 
       private void SetText(LineRange range, Origin origin)
       {
@@ -422,7 +372,7 @@ namespace STextViewControl
 
       private void UpdateRequiredBufferedLines()
       {
-         bufferLines = (int)ToRange(PartiallyVisibleLines * 2, 200, 1000);
+         bufferLines = ToRange(PartiallyVisibleLines * 2, 200, 1000);
       }
    }
 
