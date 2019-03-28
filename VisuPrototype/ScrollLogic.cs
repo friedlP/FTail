@@ -144,11 +144,11 @@ namespace STextViewControl
             long maxScrollNeg = lineRange.PreviousExtents.Count == 0 ? -lineRange.PreviousLines.Count : long.MinValue;
             long maxScrollPos = lineRange.NextExtents.Count == 0 ? lineRange.NextLines.Count : long.MaxValue;
             long possibleScroll = ToRange(scrollLines, maxScrollNeg, maxScrollPos);
-            long possibleScrollLastLine = ToRange(possibleScroll + linesOnScreen, maxScrollNeg, maxScrollPos);
-            if (possibleScrollLastLine - possibleScroll < linesOnScreen)
+            long possibleScrollLastLine = ToRange(AddInLongRange(possibleScroll, linesOnScreen), maxScrollNeg, maxScrollPos);
+            if (AddInLongRange(possibleScrollLastLine, -possibleScroll) < linesOnScreen)
             {
                // Last line can't be scrolled as far as first line (end of file reached)
-               possibleScroll = ToRange(possibleScrollLastLine - linesOnScreen + 1, maxScrollNeg, possibleScrollLastLine);
+               possibleScroll = ToRange(AddInLongRange(possibleScrollLastLine, -linesOnScreen + 1), maxScrollNeg, possibleScrollLastLine);
             }
 
             if (possibleScroll != 0 || force)
@@ -178,14 +178,14 @@ namespace STextViewControl
             if (sValue <= 0.5)
             {
                origin = Origin.Begin;
-               pos = ToRange(Round(lineRange.RequestedLine.Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
+               pos = ToRange(RoundToLongRange(lineRange.RequestedLine.Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
                long p = Round(cFactor * (sValue * streamLenMod - pos));
                pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
             }
             else
             {
                origin = Origin.End;
-               pos = ToRange(Round(LineAt((int)linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
+               pos = ToRange(RoundToLongRange(LineAt((int)linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
                long p = Round(cFactor * (sValue * streamLenMod - pos));
                pos = ToRange(pos - p, 0, lineRange.StreamLength - 1);
                pos -= lineRange.StreamLength;   // From the end
@@ -216,6 +216,47 @@ namespace STextViewControl
       private long Round(double value)
       {
          return value > 0 ? (long)(value + 0.5) : -(long)(-value + .5);
+      }
+
+      private long RoundToLongRange(double value)
+      {
+         if (value > long.MaxValue)
+            return long.MaxValue;
+         else if (value < long.MinValue)
+            return long.MinValue;
+         else
+         {
+            long rValue = Round(value);
+            if (value > long.MaxValue / 2 && rValue < 0)
+               return long.MaxValue;
+            else if (value < long.MinValue / 2 && rValue > 0)
+               return long.MinValue;
+            else
+               return rValue;
+         }
+      }
+
+      private long AddInLongRange(long value1, long value2)
+      {
+         long sum = value1 + value2;
+         if (value1 > 0 && value2 > 0)
+         {
+            if (sum < Max(value1, value2))
+               return long.MaxValue;
+            else
+               return sum;
+         }
+         else if (value1 < 0 && value2 < 0)
+         {
+            if (sum > Min(value1, value2))
+               return long.MinValue;
+            else
+               return sum;
+         }
+         else
+         {
+            return sum;
+         }
       }
 
       private void UpdateRange(long position, Origin origin)

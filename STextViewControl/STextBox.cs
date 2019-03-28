@@ -122,6 +122,12 @@ namespace STextViewControl {
             case Keys.PageDown:
                VScroll(base.LinesOnScreen);
                return true;
+            case Keys.End | Keys.Control:
+               VScroll(long.MaxValue);
+               return true;
+            case Keys.Home | Keys.Control:
+               VScroll(long.MinValue);
+               return true;
          }
 
          return base.ProcessCmdKey(ref msg, keyData);
@@ -155,6 +161,10 @@ namespace STextViewControl {
       }
 
       protected override void OnUpdateUI(UpdateUIEventArgs e) {
+         if ((e.Change & UpdateChange.Selection) != 0)
+         {
+            //UpdateSelection();
+         }
          if ((e.Change & UpdateChange.HScroll) != 0) {
             ValidateAndUpdateXOffset();
          }
@@ -174,6 +184,53 @@ namespace STextViewControl {
       bool insideValidateAndUpdateXOffset;
       bool thumbFixed;
       bool vScrollBarNeedsUpdate;
+
+      //int anchorSelLine;
+      //int anchorSelCol;
+      //int curCarLine;
+      //int curCarCol;
+
+      //int line = 0;
+      //int nOffset = 0;
+
+      //private void UpdateSelection()
+      //{
+      //   curCarLine = base.LineFromPosition(base.CurrentPosition);
+      //   curCarCol = base.CurrentPosition - base.Lines[curCarLine].Position;
+      //   curCarLine += line - nOffset;
+
+      //   if (base.CurrentPosition == base.SelectionStart && base.CurrentPosition == base.SelectionEnd)
+      //   {
+      //      anchorSelLine = curCarLine;
+      //      anchorSelCol = curCarCol;
+      //   }
+      //   else if (base.CurrentPosition != base.SelectionStart)
+      //   {
+      //      // forward
+      //      int newAnchorSelLine = base.LineFromPosition(base.SelectionStart);
+      //      int newAnchorSelCol = base.SelectionStart - base.Lines[newAnchorSelLine].Position;
+      //      newAnchorSelLine += line - nOffset;
+      //      if (base.SelectionStart > 0 || newAnchorSelLine < anchorSelLine
+      //            || newAnchorSelLine == anchorSelLine && newAnchorSelCol < anchorSelCol)
+      //      {
+      //         anchorSelLine = newAnchorSelLine;
+      //         anchorSelCol = newAnchorSelCol;
+      //      }
+      //   }
+      //   else
+      //   {
+      //      // backward
+      //      int newAnchorSelLine = base.LineFromPosition(base.SelectionEnd);
+      //      int newAnchorSelCol = base.SelectionEnd - base.Lines[newAnchorSelLine].Position;
+      //      newAnchorSelLine += line - nOffset;
+      //      if (base.SelectionEnd < base.TextLength || newAnchorSelLine > anchorSelLine
+      //            || newAnchorSelLine == anchorSelLine && newAnchorSelCol > anchorSelCol)
+      //      {
+      //         anchorSelLine = newAnchorSelLine;
+      //         anchorSelCol = newAnchorSelCol;
+      //      }
+      //   }
+      //}
 
       private void ValidateAndUpdateXOffset() {
          if (insideValidateAndUpdateXOffset)
