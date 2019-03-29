@@ -181,15 +181,15 @@ namespace VisuPrototype
             {
                origin = Origin.Begin;
                pos = ToRange(RoundToLongRange(lineRange.RequestedLine.Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = RoundToLongRange(cFactor * (sValue * streamLenMod - pos));
+               long p = RoundToLongRange(cFactor * (sValue * (lineRange.StreamLength - 1) - pos));
                pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
             }
             else
             {
                origin = Origin.End;
                pos = ToRange(RoundToLongRange(LineAt((int)linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = RoundToLongRange(cFactor * (sValue * streamLenMod - pos));
-               pos = ToRange(pos - p, 0, lineRange.StreamLength - 1);
+               long p = RoundToLongRange(cFactor * (sValue * (lineRange.StreamLength - 1) - pos));
+               pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
                pos -= lineRange.StreamLength;   // From the end
             }
 
