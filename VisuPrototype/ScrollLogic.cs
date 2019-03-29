@@ -26,7 +26,7 @@ namespace VisuPrototype
       readonly FileWatcher fw;
       readonly LineBuffer lb;
       LineRange lineRange;
-
+      
       int bufferLines;
 
       public ScrollLogic(FileWatcher fileWatcher)
@@ -169,8 +169,9 @@ namespace VisuPrototype
          }
          else
          {
-            long linesOnScreen = FullyVisibleLines;
-            double vis = (double)linesOnScreen * (lineRange.LastExtent.End - lineRange.FirstExtent.Begin) / lineRange.ExtentsCount;
+            int linesOnScreen = FullyVisibleLines;
+            double lineLen = (double)(lineRange.LastExtent.End - lineRange.FirstExtent.Begin) / lineRange.ExtentsCount;
+            double vis = linesOnScreen * lineLen;
             double streamLenMod = lineRange.StreamLength - vis;
 
             long pos;
@@ -180,17 +181,19 @@ namespace VisuPrototype
             if (sValue <= 0.5)
             {
                origin = Origin.Begin;
-               pos = ToRange(RoundToLongRange(lineRange.RequestedLine.Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = RoundToLongRange(cFactor * (sValue * (lineRange.StreamLength - 1) - pos));
-               pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
+               pos = ToRange(RoundToLongRange(LineAt(0).Begin + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
+               long p = RoundToLongRange(cFactor * (sValue * streamLenMod - pos));
+               pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);   // Position at the begin of the line
+               pos += Round(sValue * lineLen);                          // Position within the line
             }
             else
             {
                origin = Origin.End;
-               pos = ToRange(RoundToLongRange(LineAt((int)linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength - 1);
-               long p = RoundToLongRange(cFactor * (sValue * (lineRange.StreamLength - 1) - pos));
-               pos = ToRange(pos + p, 0, lineRange.StreamLength - 1);
-               pos -= lineRange.StreamLength;   // From the end
+               pos = ToRange(RoundToLongRange(LineAt(linesOnScreen - 1).End + streamLenMod * scroll), 0, lineRange.StreamLength);
+               long p = RoundToLongRange(cFactor * ((lineRange.StreamLength - (1 - sValue) * streamLenMod) - pos));
+               pos = ToRange(pos + p, 0, lineRange.StreamLength);       // Position at the end of the line 
+               pos -= lineRange.StreamLength + 1;                       // --> From the end of the stream
+               pos -= Round((1 - sValue) * lineLen);                    // Position within the line
             }
 
             UpdateRange(pos, origin);
@@ -220,12 +223,37 @@ namespace VisuPrototype
          int nextLines = bufferLines + (origin == Origin.Begin ? textViewLinesOnScreen : 0);
          int prevLines = bufferLines + (origin == Origin.End ? textViewLinesOnScreen : 0);
          LineRange newLineRange = lb.ReadRange(position, origin, prevLines, nextLines, 1000, 1000);
-         RangeUpdated(newLineRange, origin);
+         if (origin == Origin.End)
+            newLineRange = ShiftLineRange(newLineRange, -(textViewLinesOnScreen - 1));
+         RangeUpdated(newLineRange);
+      }
+
+      private LineRange ShiftLineRange(LineRange lineRange, int shift) {
+         int prevLineCount = lineRange.PreviousLines.Count;
+         int nextLineCount = lineRange.NextLines.Count;
+         if (shift < 0 && prevLineCount > 0) {
+            shift = Min(-shift, prevLineCount);
+            int newPrevLineCount = prevLineCount - shift;
+            List<Line> prev = lineRange.PreviousLines.Take(newPrevLineCount).ToList();
+            Line cur = lineRange.PreviousLines.Skip(newPrevLineCount).First();
+            List<Line> next = lineRange.PreviousLines.Skip(newPrevLineCount + 1).Append(lineRange.RequestedLine).Concat(lineRange.NextLines).ToList();
+            return new LineRange(cur, prev, next, lineRange.PreviousExtents, lineRange.NextExtents, lineRange.StreamLength);
+         }
+         else if (shift > 0 && nextLineCount > 0) {
+            shift = Min(shift, nextLineCount);
+            List<Line> prev = lineRange.PreviousLines.Append(lineRange.RequestedLine).Concat(lineRange.NextLines.Take(shift - 1)).ToList();
+            Line cur = lineRange.NextLines.Skip(shift - 1).First();
+            List<Line> next = lineRange.NextLines.Skip(shift).ToList();
+            return new LineRange(cur, prev, next, lineRange.PreviousExtents, lineRange.NextExtents, lineRange.StreamLength);
+         }
+         else {
+            return lineRange;
+         }
       }
 
       private void UpdateVScrollBar()
       {
-         int linesOnScreen = textViewLinesOnScreen;
+         int linesOnScreen = FullyVisibleLines;
 
          (double min, double max) = GetVisibleRange(linesOnScreen);
          (double smallChange, double largeChange) = CalcScrollChange(min, max, linesOnScreen, 1);
@@ -305,7 +333,7 @@ namespace VisuPrototype
       static double ScrollPos(double startValue, double endValue)
       {
          double v = 1 - (endValue - startValue);
-         return v > 0 ? startValue / v : 0;
+         return v > 0 ? ToRange(startValue / v, 0, 1) : 0;
       }
 
       private (double diff, long diffLines) GetChange(double oldStartValue, double oldEndValue, double newStartValue, double newEndValue)
@@ -324,13 +352,13 @@ namespace VisuPrototype
          return (diff, diffLines);
       }
 
-      private void RangeUpdated(LineRange range, Origin origin)
+      private void RangeUpdated(LineRange range)
       {
          lineRange = range;
-         SetText(lineRange, origin);
+         SetText(lineRange);
       }
 
-      private void SetText(LineRange range, Origin origin)
+      private void SetText(LineRange range)
       {
          int maxLines = textViewLinesOnScreen;
          StringBuilder stringBuilder = new StringBuilder();
@@ -338,9 +366,9 @@ namespace VisuPrototype
 
          if (range != null)
          {
-            int prev = (int)Min(50 + (origin == Origin.End ? maxLines : 0), range.PreviousLines.Count);
-            int next = (int)Min(50 + (origin == Origin.Begin ? maxLines : 0), range.NextLines.Count);
-            firstVisibleLine = (origin == Origin.Begin) ? prev : (int)Max(prev - maxLines, 0);
+            int prev = (int)Min(50, range.PreviousLines.Count);
+            int next = (int)Min(50 + maxLines, range.NextLines.Count);
+            firstVisibleLine = prev;
             List <FastFileReader.Line> lines = new List<FastFileReader.Line>();
             for (int i = 0; i < prev; ++i)
             {

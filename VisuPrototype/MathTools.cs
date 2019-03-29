@@ -11,6 +11,9 @@ namespace VisuPrototype
       public static long Min(long a, long b) => a < b ? a : b;
       public static long Max(long a, long b) => a > b ? a : b;
 
+      public static int Min(int a, int b) => a < b ? a : b;
+      public static int Max(int a, int b) => a > b ? a : b;
+
       public static double ToRange(double val, double min, double max) => val < min ? min : (val > max ? max : val);
       public static int ToRange(int val, int min, int max) => val < min ? min : (val > max ? max : val);
       public static long ToRange(long val, long min, long max) => val < min ? min : (val > max ? max : val);
