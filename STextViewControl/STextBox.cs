@@ -28,8 +28,24 @@ namespace STextViewControl {
    }
 
    public delegate void ScrollBarParameterChangedHandler(object sender, ScrollBarParameter newScrollBarParameter);
-   public delegate void TextChangedHandler(object sender, string newText, int newFirstVisibleLine);
+   public delegate void TextChangedHandler(object sender, string newText, int newFirstVisibleLine, SelectionRange selectionRange);
    public delegate void FirstVisibleLineChangedHandler(object sender, int newFirstVisibleLine);
+
+   public class SelectionRange
+   {
+      public SelectionRange(int anchorSelLine, int anchorSelColumn, int curCaretLine, int curCaretColumn/*, int startSelLine, int startSelColumn, int endSelLine, int endSelColumn*/)
+      {
+         AnchorSelLine = anchorSelLine;
+         AnchorSelColumn = anchorSelColumn;
+         CurCaretLine = curCaretLine;
+         CurCaretColumn = curCaretColumn;
+      }
+
+      public int AnchorSelLine { get; private set; }
+      public int AnchorSelColumn { get; private set; }
+      public int CurCaretLine { get; private set; }
+      public int CurCaretColumn { get; private set; }
+   }
 
    public interface IScrollLogic
    {
@@ -39,10 +55,12 @@ namespace STextViewControl {
       void SetVScroll(double startValue, double endValue);
       void VScroll(long scrollLines);
       void VisibleAreaChanged(int firstVisibleLine, int linesOnScreen);
+      void UpdateSellection((int line, int column) curCarPos, (int line, int column) anchorPos, (int line, int column) textEndPos, bool newSelection);
    }
 
    public class STextBox : Scintilla {
       int scrollLines = System.Windows.Forms.SystemInformation.MouseWheelScrollLines;
+      bool newSelection = false;
 
       public event ScrollBarValueChangedEventHandler HScrollBarValueChanged;
       public event ScrollBarValueChangedEventHandler VScrollBarValueChanged;
@@ -68,13 +86,42 @@ namespace STextViewControl {
          }
       }
 
-      protected void OnTextChanged(object sender, string newText, int newFirstVisibleLine)
+      protected void OnTextChanged(object sender, string newText, int newFirstVisibleLine, SelectionRange selectionRange)
       {
          base.Document = new ScintillaNET.Document();
          base.ReadOnly = false;
          base.Text = newText;
          base.FirstVisibleLine = newFirstVisibleLine;
+         SetSelection(selectionRange);
          base.ReadOnly = true;
+      }
+
+      private void SetSelection(SelectionRange selectionRange)
+      {
+         if (selectionRange == null)
+            return;
+
+         int anchorPos = ToPosition(selectionRange.AnchorSelLine, selectionRange.AnchorSelColumn);
+         int caretPos = ToPosition(selectionRange.CurCaretLine, selectionRange.CurCaretColumn);
+
+         base.AnchorPosition = anchorPos;
+         base.CurrentPosition = caretPos;
+      }
+
+      private int ToPosition(int line, int column)
+      {
+         if (line < 0)
+         {
+            return 0;
+         }
+         else if (line >= base.Lines.Count)
+         {
+            return base.Lines[base.Lines.Count - 1].EndPosition;
+         }
+         else
+         {
+            return base.Lines[line].Position + column;
+         }
       }
 
       protected void OnFirstVisibleLineChanged(object sender, int newFirstVisibleLine)
@@ -160,10 +207,19 @@ namespace STextViewControl {
          } 
       }
 
+      protected override void OnMouseDown(MouseEventArgs e)
+      {
+         if (e.Button == MouseButtons.Left)
+         {
+            newSelection = true;
+         }
+         base.OnMouseDown(e);
+      }
+
       protected override void OnUpdateUI(UpdateUIEventArgs e) {
          if ((e.Change & UpdateChange.Selection) != 0)
          {
-            //UpdateSelection();
+            UpdateSelection();
          }
          if ((e.Change & UpdateChange.HScroll) != 0) {
             ValidateAndUpdateXOffset();
@@ -185,52 +241,22 @@ namespace STextViewControl {
       bool thumbFixed;
       bool vScrollBarNeedsUpdate;
 
-      //int anchorSelLine;
-      //int anchorSelCol;
-      //int curCarLine;
-      //int curCarCol;
+      (int caretLine, int caretCol) CaretPos(int pos)
+      {
+         int caretLine = base.LineFromPosition(pos);
+         int caretCol = pos - base.Lines[caretLine].Position;
+         return (caretLine, caretCol);
+      }
 
-      //int line = 0;
-      //int nOffset = 0;
+      private void UpdateSelection()
+      {
+         var curCarPos = CaretPos(base.CurrentPosition);
+         var anchorPos = CaretPos(base.AnchorPosition);
+         var textEndPos = CaretPos(base.TextLength);
 
-      //private void UpdateSelection()
-      //{
-      //   curCarLine = base.LineFromPosition(base.CurrentPosition);
-      //   curCarCol = base.CurrentPosition - base.Lines[curCarLine].Position;
-      //   curCarLine += line - nOffset;
-
-      //   if (base.CurrentPosition == base.SelectionStart && base.CurrentPosition == base.SelectionEnd)
-      //   {
-      //      anchorSelLine = curCarLine;
-      //      anchorSelCol = curCarCol;
-      //   }
-      //   else if (base.CurrentPosition != base.SelectionStart)
-      //   {
-      //      // forward
-      //      int newAnchorSelLine = base.LineFromPosition(base.SelectionStart);
-      //      int newAnchorSelCol = base.SelectionStart - base.Lines[newAnchorSelLine].Position;
-      //      newAnchorSelLine += line - nOffset;
-      //      if (base.SelectionStart > 0 || newAnchorSelLine < anchorSelLine
-      //            || newAnchorSelLine == anchorSelLine && newAnchorSelCol < anchorSelCol)
-      //      {
-      //         anchorSelLine = newAnchorSelLine;
-      //         anchorSelCol = newAnchorSelCol;
-      //      }
-      //   }
-      //   else
-      //   {
-      //      // backward
-      //      int newAnchorSelLine = base.LineFromPosition(base.SelectionEnd);
-      //      int newAnchorSelCol = base.SelectionEnd - base.Lines[newAnchorSelLine].Position;
-      //      newAnchorSelLine += line - nOffset;
-      //      if (base.SelectionEnd < base.TextLength || newAnchorSelLine > anchorSelLine
-      //            || newAnchorSelLine == anchorSelLine && newAnchorSelCol > anchorSelCol)
-      //      {
-      //         anchorSelLine = newAnchorSelLine;
-      //         anchorSelCol = newAnchorSelCol;
-      //      }
-      //   }
-      //}
+         scrollLogic?.UpdateSellection(curCarPos, anchorPos, textEndPos, newSelection);
+         newSelection = false;
+      }
 
       private void ValidateAndUpdateXOffset() {
          if (insideValidateAndUpdateXOffset)

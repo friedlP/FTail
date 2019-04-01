@@ -41,7 +41,7 @@ namespace STextViewControl {
       private void VScrollBar_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) {
          //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(VScrollBar_ValueChanged)}]: old={e.OldValue}, new={e.NewValue}, thumbFixed={thumbFixed}");
          (double startValue, double endValue) = GetValueRange(vScrollBar);
-         Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(VScrollBar_ValueChanged)}]: start={startValue}, end={endValue}");
+         //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(STextView)}.{nameof(VScrollBar_ValueChanged)}]: start={startValue}, end={endValue}");
          sTextBox.SetVScroll(startValue, endValue);
       }
 

@@ -99,7 +99,23 @@ namespace VisuPrototype
          action();
          if (textViewText != oldText)
          {
-            TextChanged?.Invoke(this, textViewText, textViewFirstVisibleLine);
+            DocPosition anchor = anchorPosition;
+            if (curCaretPos < anchorPosition)
+            {
+               if (anchor < endSelPos)
+                  anchor = endSelPos;
+            }
+            else
+            {
+               if (anchor > startSelPos)
+                  anchor = startSelPos;
+            }
+
+            SelectionRange selectionRange = null;
+            if (curCaretPos != null && anchor != null)
+               selectionRange = new SelectionRange(LineFromExtent(anchor.LineExtent), anchor.Column, LineFromExtent(curCaretPos.LineExtent), curCaretPos.Column);
+
+            TextChanged?.Invoke(this, textViewText, textViewFirstVisibleLine, selectionRange);
          }
          else if (textViewFirstVisibleLine != oldFirstVisibleLine)
          {
@@ -228,10 +244,12 @@ namespace VisuPrototype
          RangeUpdated(newLineRange);
       }
 
-      private LineRange ShiftLineRange(LineRange lineRange, int shift) {
+      private LineRange ShiftLineRange(LineRange lineRange, int shift)
+      {
          int prevLineCount = lineRange.PreviousLines.Count;
          int nextLineCount = lineRange.NextLines.Count;
-         if (shift < 0 && prevLineCount > 0) {
+         if (shift < 0 && prevLineCount > 0)
+         {
             shift = Min(-shift, prevLineCount);
             int newPrevLineCount = prevLineCount - shift;
             List<Line> prev = lineRange.PreviousLines.Take(newPrevLineCount).ToList();
@@ -239,14 +257,16 @@ namespace VisuPrototype
             List<Line> next = lineRange.PreviousLines.Skip(newPrevLineCount + 1).Append(lineRange.RequestedLine).Concat(lineRange.NextLines).ToList();
             return new LineRange(cur, prev, next, lineRange.PreviousExtents, lineRange.NextExtents, lineRange.StreamLength);
          }
-         else if (shift > 0 && nextLineCount > 0) {
+         else if (shift > 0 && nextLineCount > 0)
+         {
             shift = Min(shift, nextLineCount);
             List<Line> prev = lineRange.PreviousLines.Append(lineRange.RequestedLine).Concat(lineRange.NextLines.Take(shift - 1)).ToList();
             Line cur = lineRange.NextLines.Skip(shift - 1).First();
             List<Line> next = lineRange.NextLines.Skip(shift).ToList();
             return new LineRange(cur, prev, next, lineRange.PreviousExtents, lineRange.NextExtents, lineRange.StreamLength);
          }
-         else {
+         else
+         {
             return lineRange;
          }
       }
@@ -369,7 +389,7 @@ namespace VisuPrototype
             int prev = (int)Min(50, range.PreviousLines.Count);
             int next = (int)Min(50 + maxLines, range.NextLines.Count);
             firstVisibleLine = prev;
-            List <FastFileReader.Line> lines = new List<FastFileReader.Line>();
+            List<FastFileReader.Line> lines = new List<FastFileReader.Line>();
             for (int i = 0; i < prev; ++i)
             {
                lines.Add(range.PreviousLines[range.PreviousLines.Count - prev + i]);
@@ -379,7 +399,7 @@ namespace VisuPrototype
             {
                lines.Add(range.NextLines[i]);
             }
-            
+
             lines.ForEach(l => stringBuilder.AppendLine(l.Content.TrimEnd()));
          }
          string text = stringBuilder.ToString().TrimEnd(new char[] { '\r', '\n' });
@@ -401,6 +421,85 @@ namespace VisuPrototype
       private void UpdateRequiredBufferedLines()
       {
          bufferLines = ToRange(PartiallyVisibleLines * 2, 200, 1000);
+      }
+
+      DocPosition curCaretPos;
+      DocPosition startSelPos;
+      DocPosition endSelPos;
+      DocPosition anchorPosition;
+
+      public void UpdateSellection(
+         (int line, int column) curCarPos,
+         (int line, int column) anchorPos,
+         (int line, int column) textEndPos,
+         bool newSelection)
+      {
+         (int line, int column) textStartPos = (0, 0);
+
+         curCaretPos = CreateDocPosition(curCarPos);
+         DocPosition newAnchorPosition = CreateDocPosition(anchorPos);
+
+         bool forward = curCaretPos > newAnchorPosition;
+
+         if (curCarPos == anchorPos && startSelPos == endSelPos || newSelection)
+         {
+            anchorPosition = curCaretPos;
+            if (forward)
+            {
+               startSelPos = newAnchorPosition;
+               endSelPos = curCaretPos;
+            }
+            else
+            {
+               startSelPos = curCaretPos;
+               endSelPos = newAnchorPosition;
+            }
+         }
+         else if (forward)
+         {
+            // forward
+            if (anchorPos != textStartPos || newAnchorPosition < anchorPosition)
+            {
+               anchorPosition = newAnchorPosition;
+            }
+         }
+         else
+         {
+            // backward
+            if (anchorPos != textEndPos || newAnchorPosition > anchorPosition)
+            {
+               anchorPosition = newAnchorPosition;
+            }
+         }
+      }
+
+      private DocPosition CreateDocPosition((int line, int column) curCarPos)
+      {
+         return new DocPosition(LineExtent(curCarPos.line), curCarPos.column);
+      }
+
+      private Extent LineExtent(int line)
+      {
+         return lineRange.RelExtent(line - textViewFirstVisibleLine);
+      }
+
+      private int LineFromExtent(Extent extent)
+      {
+         if (lineRange.FirstLine.Extent.Begin > extent.Begin)
+            return int.MinValue;
+         else if (lineRange.LastLine.Extent.Begin < extent.Begin)
+            return int.MaxValue;
+         else
+         {
+            int linePos = 0;
+            foreach(var line in lineRange.AllLines)
+            {
+               if (line.Begin == extent.Begin)
+                  return linePos - lineRange.PreviousLines.Count + textViewFirstVisibleLine;
+               ++linePos;
+            }
+         }
+         return 0;
       }
    }
 

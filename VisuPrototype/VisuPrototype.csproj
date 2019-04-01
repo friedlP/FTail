@@ -65,6 +65,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DocPosition.cs" />
     <Compile Include="MathTools.cs" />
     <Compile Include="ScrollBarExtensions.cs" />
     <Compile Include="ScrollLogic.cs" />
