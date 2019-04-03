@@ -15,6 +15,7 @@ namespace VisuPrototype
       public event ScrollBarParameterChangedHandler VScrollBarParameterChanged;
       public event FirstVisibleLineChangedHandler FirstVisibleLineChanged;
       public event TextChangedHandler TextChanged;
+      public event ChangeSelectionHandler ChangeSelection;
 
       ScrollBarParameter curScrollBarParameter = new ScrollBarParameter(0, 1, 0.01, 0.1);
       double? scrollPosition;
@@ -99,21 +100,8 @@ namespace VisuPrototype
          action();
          if (textViewText != oldText)
          {
-            DocPosition anchor = anchorPosition;
-            if (curCaretPos < anchorPosition)
-            {
-               if (anchor < endSelPos)
-                  anchor = endSelPos;
-            }
-            else
-            {
-               if (anchor > startSelPos)
-                  anchor = startSelPos;
-            }
-
-            SelectionRange selectionRange = null;
-            if (curCaretPos != null && anchor != null)
-               selectionRange = new SelectionRange(LineFromExtent(anchor.LineExtent), anchor.Column, LineFromExtent(curCaretPos.LineExtent), curCaretPos.Column);
+            SelectionRange selectionRange = GetSelectionRange();
+            selectionDirty = false;
 
             TextChanged?.Invoke(this, textViewText, textViewFirstVisibleLine, selectionRange);
          }
@@ -125,6 +113,36 @@ namespace VisuPrototype
          if(ScrollBarParameterChanged(oldScrollBarParameter, curScrollBarParameter))
          {
             VScrollBarParameterChanged?.Invoke(this, curScrollBarParameter);
+         }
+      }
+
+      private SelectionRange GetSelectionRange()
+      {
+         DocPosition anchor = anchorPosition;
+         if (curCaretPos < endSelPos)
+         {
+            if (anchor < endSelPos)
+               anchor = endSelPos;
+         }
+         else if (curCaretPos > startSelPos)
+         {
+            if (anchor > startSelPos)
+               anchor = startSelPos;
+         }
+
+         SelectionRange selectionRange = null;
+         if (curCaretPos != null && anchor != null)
+            selectionRange = new SelectionRange(LineFromExtent(anchor.LineExtent), anchor.Column, LineFromExtent(curCaretPos.LineExtent), curCaretPos.Column);
+         return selectionRange;
+      }
+
+      public void ValidateSelection()
+      {
+         if (selectionDirty)
+         {
+            SelectionRange selectionRange = GetSelectionRange();
+            selectionDirty = false;
+            ChangeSelection?.Invoke(this, selectionRange);
          }
       }
 
@@ -427,8 +445,9 @@ namespace VisuPrototype
       DocPosition startSelPos;
       DocPosition endSelPos;
       DocPosition anchorPosition;
+      bool selectionDirty;
 
-      public void UpdateSellection(
+      public void UpdateSelection(
          (int line, int column) curCarPos,
          (int line, int column) anchorPos,
          (int line, int column) textEndPos,
@@ -436,41 +455,79 @@ namespace VisuPrototype
       {
          (int line, int column) textStartPos = (0, 0);
 
-         curCaretPos = CreateDocPosition(curCarPos);
+         selectionDirty = true;
+
+         DocPosition newCaretPosition = CreateDocPosition(curCarPos);
          DocPosition newAnchorPosition = CreateDocPosition(anchorPos);
 
-         bool forward = curCaretPos > newAnchorPosition;
+         //bool forward = newCaretPosition > newAnchorPosition;
+         //bool backward = newCaretPosition < newAnchorPosition;
 
-         if (curCarPos == anchorPos && startSelPos == endSelPos || newSelection)
+         Debug.WriteLine($"curCarPos=({curCarPos}) anchorPos={anchorPos})");
+
+         if (curCarPos == anchorPos && newCaretPosition == startSelPos && startSelPos == endSelPos || newSelection)
          {
-            anchorPosition = curCaretPos;
-            if (forward)
+            curCaretPos = newCaretPosition;
+            anchorPosition = newAnchorPosition;
+            if (newCaretPosition >= newAnchorPosition)
             {
                startSelPos = newAnchorPosition;
                endSelPos = curCaretPos;
+               Debug.WriteLine($"New (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+                  + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+                  + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+                  + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
             }
             else
             {
                startSelPos = curCaretPos;
                endSelPos = newAnchorPosition;
+               Debug.WriteLine($"New (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+                  + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+                  + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+                  + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
             }
          }
-         else if (forward)
+         else if (newCaretPosition > curCaretPos && curCarPos != textStartPos)
          {
-            // forward
-            if (anchorPos != textStartPos || newAnchorPosition < anchorPosition)
-            {
-               anchorPosition = newAnchorPosition;
-            }
+            curCaretPos = newCaretPosition;
+            Debug.WriteLine($"Upd (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+               + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+               + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+               + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
          }
-         else
+         else if (newCaretPosition < curCaretPos && curCarPos != textEndPos)
          {
-            // backward
-            if (anchorPos != textEndPos || newAnchorPosition > anchorPosition)
-            {
-               anchorPosition = newAnchorPosition;
-            }
+            curCaretPos = newCaretPosition;
+            Debug.WriteLine($"Upd (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+               + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+               + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+               + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
          }
+         //else if (forward)
+         //{
+         //   // forward
+         //   if (anchorPos != textStartPos || newCaretPosition > curCaretPos)
+         //   {
+         //      curCaretPos = newCaretPosition;
+         //      Debug.WriteLine($"Upd (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+         //         + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+         //         + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+         //         + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+         //   }
+         //}
+         //else if (backward)
+         //{
+         //   // backward
+         //   if (anchorPos != textEndPos || newCaretPosition < curCaretPos)
+         //   {
+         //      curCaretPos = newCaretPosition;
+         //      Debug.WriteLine($"Upd (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
+         //         + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
+         //         + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
+         //         + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+         //   }
+         //}
       }
 
       private DocPosition CreateDocPosition((int line, int column) curCarPos)

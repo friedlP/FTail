@@ -30,6 +30,7 @@ namespace STextViewControl {
    public delegate void ScrollBarParameterChangedHandler(object sender, ScrollBarParameter newScrollBarParameter);
    public delegate void TextChangedHandler(object sender, string newText, int newFirstVisibleLine, SelectionRange selectionRange);
    public delegate void FirstVisibleLineChangedHandler(object sender, int newFirstVisibleLine);
+   public delegate void ChangeSelectionHandler(object sender, SelectionRange selectionRange);
 
    public class SelectionRange
    {
@@ -52,10 +53,12 @@ namespace STextViewControl {
       event ScrollBarParameterChangedHandler VScrollBarParameterChanged;
       event TextChangedHandler TextChanged;
       event FirstVisibleLineChangedHandler FirstVisibleLineChanged;
+      event ChangeSelectionHandler ChangeSelection;
       void SetVScroll(double startValue, double endValue);
       void VScroll(long scrollLines);
       void VisibleAreaChanged(int firstVisibleLine, int linesOnScreen);
-      void UpdateSellection((int line, int column) curCarPos, (int line, int column) anchorPos, (int line, int column) textEndPos, bool newSelection);
+      void UpdateSelection((int line, int column) curCarPos, (int line, int column) anchorPos, (int line, int column) textEndPos, bool newSelection);
+      void ValidateSelection();
    }
 
    public class STextBox : Scintilla {
@@ -78,12 +81,19 @@ namespace STextViewControl {
                scrollLogic.TextChanged -= OnTextChanged;
                scrollLogic.FirstVisibleLineChanged -= OnFirstVisibleLineChanged;
                scrollLogic.VScrollBarParameterChanged -= OnVScrollBarParameterChanged;
+               scrollLogic.ChangeSelection -= OnChangeSelection;
             }
             scrollLogic = value;
             scrollLogic.TextChanged += OnTextChanged;
             scrollLogic.FirstVisibleLineChanged += OnFirstVisibleLineChanged;
             scrollLogic.VScrollBarParameterChanged += OnVScrollBarParameterChanged;
+            scrollLogic.ChangeSelection += OnChangeSelection;
          }
+      }
+
+      protected void OnChangeSelection(object sender, SelectionRange selectionRange)
+      {
+         SetSelection(selectionRange);
       }
 
       protected void OnTextChanged(object sender, string newText, int newFirstVisibleLine, SelectionRange selectionRange)
@@ -104,8 +114,11 @@ namespace STextViewControl {
          int anchorPos = ToPosition(selectionRange.AnchorSelLine, selectionRange.AnchorSelColumn);
          int caretPos = ToPosition(selectionRange.CurCaretLine, selectionRange.CurCaretColumn);
 
-         base.AnchorPosition = anchorPos;
-         base.CurrentPosition = caretPos;
+         if (anchorPos != base.AnchorPosition || caretPos != base.CurrentPosition)
+         {
+            base.AnchorPosition = anchorPos;
+            base.CurrentPosition = caretPos;
+         }
       }
 
       private int ToPosition(int line, int column)
@@ -217,8 +230,10 @@ namespace STextViewControl {
       }
 
       protected override void OnUpdateUI(UpdateUIEventArgs e) {
+         bool validateSelection = false;
          if ((e.Change & UpdateChange.Selection) != 0)
          {
+            validateSelection = true;
             UpdateSelection();
          }
          if ((e.Change & UpdateChange.HScroll) != 0) {
@@ -226,6 +241,10 @@ namespace STextViewControl {
          }
          if ((e.Change & UpdateChange.VScroll) != 0) {
             ScrollLogic?.VisibleAreaChanged(base.FirstVisibleLine, base.LinesOnScreen);
+         }
+         if (validateSelection)
+         {
+            ScrollLogic?.ValidateSelection();
          }
          base.OnUpdateUI(e);
       }
@@ -254,7 +273,7 @@ namespace STextViewControl {
          var anchorPos = CaretPos(base.AnchorPosition);
          var textEndPos = CaretPos(base.TextLength);
 
-         scrollLogic?.UpdateSellection(curCarPos, anchorPos, textEndPos, newSelection);
+         scrollLogic?.UpdateSelection(curCarPos, anchorPos, textEndPos, newSelection);
          newSelection = false;
       }
 

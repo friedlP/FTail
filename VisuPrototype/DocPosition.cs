@@ -30,7 +30,7 @@ namespace VisuPrototype
          return hashCode;
       }
 
-      public static bool operator==(DocPosition lhs, DocPosition rhs)
+      public static bool operator ==(DocPosition lhs, DocPosition rhs)
       {
          if (System.Object.ReferenceEquals(lhs, rhs))
             return true;
@@ -40,42 +40,61 @@ namespace VisuPrototype
 
          return lhs.LineExtent == rhs.LineExtent && lhs.Column == rhs.Column;
       }
-      public static bool operator!=(DocPosition lhs, DocPosition rhs)
+      public static bool operator !=(DocPosition lhs, DocPosition rhs)
       {
          return !(lhs == rhs);
       }
 
-      public static bool operator<(DocPosition lhs, DocPosition rhs)
+      public static bool operator <(DocPosition lhs, DocPosition rhs)
+      {
+         return Compare(lhs, rhs) == ComparisionResult.RightBigger;
+      }
+      public static bool operator >(DocPosition lhs, DocPosition rhs)
+      {
+         return Compare(lhs, rhs) == ComparisionResult.LeftBigger;
+      }
+      public static bool operator <=(DocPosition lhs, DocPosition rhs)
+      {
+         return Compare(lhs, rhs) != ComparisionResult.LeftBigger;
+      }
+      public static bool operator >=(DocPosition lhs, DocPosition rhs)
+      {
+         return Compare(lhs, rhs) != ComparisionResult.RightBigger;
+      }
+
+      private enum ComparisionResult
+      {
+         LeftBigger,
+         Equal,
+         RightBigger
+      }
+
+      private static ComparisionResult Compare(DocPosition lhs, DocPosition rhs)
       {
          if (lhs == null)
          {
             if (rhs != null)
-               return true;
+               return ComparisionResult.RightBigger;
             else
-               return false;
+               return ComparisionResult.Equal;
          }
          else if (rhs == null)
-            return true;
+            return ComparisionResult.LeftBigger;
 
          if (lhs.LineExtent.Begin < rhs.LineExtent.Begin)
-            return true;
+            return ComparisionResult.RightBigger;
          if (lhs.LineExtent.Begin > rhs.LineExtent.Begin)
-            return false;
+            return ComparisionResult.LeftBigger;
          if (lhs.Column < rhs.Column)
-            return true;
+            return ComparisionResult.RightBigger;
          if (lhs.Column > rhs.Column)
-            return false;
+            return ComparisionResult.LeftBigger;
          if (lhs.LineExtent.End < rhs.LineExtent.End)
-            return true;
+            return ComparisionResult.RightBigger;
          if (lhs.LineExtent.End > rhs.LineExtent.End)
-            return false;
+            return ComparisionResult.LeftBigger;
 
-         return false;
+         return ComparisionResult.Equal;
       }
-      public static bool operator>(DocPosition lhs, DocPosition rhs)
-      {
-         return rhs < lhs;
-      }
-
    }
 }
