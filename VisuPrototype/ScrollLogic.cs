@@ -460,9 +460,6 @@ namespace VisuPrototype
          DocPosition newCaretPosition = CreateDocPosition(curCarPos);
          DocPosition newAnchorPosition = CreateDocPosition(anchorPos);
 
-         //bool forward = newCaretPosition > newAnchorPosition;
-         //bool backward = newCaretPosition < newAnchorPosition;
-
          Debug.WriteLine($"curCarPos=({curCarPos}) anchorPos={anchorPos})");
 
          if (curCarPos == anchorPos && newCaretPosition == startSelPos && startSelPos == endSelPos || newSelection)
@@ -504,30 +501,6 @@ namespace VisuPrototype
                + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
                + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
          }
-         //else if (forward)
-         //{
-         //   // forward
-         //   if (anchorPos != textStartPos || newCaretPosition > curCaretPos)
-         //   {
-         //      curCaretPos = newCaretPosition;
-         //      Debug.WriteLine($"Upd (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-         //         + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-         //         + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-         //         + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
-         //   }
-         //}
-         //else if (backward)
-         //{
-         //   // backward
-         //   if (anchorPos != textEndPos || newCaretPosition < curCaretPos)
-         //   {
-         //      curCaretPos = newCaretPosition;
-         //      Debug.WriteLine($"Upd (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-         //         + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-         //         + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-         //         + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
-         //   }
-         //}
       }
 
       private DocPosition CreateDocPosition((int line, int column) curCarPos)

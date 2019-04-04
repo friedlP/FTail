@@ -47,26 +47,26 @@ namespace VisuPrototype
 
       public static bool operator <(DocPosition lhs, DocPosition rhs)
       {
-         return Compare(lhs, rhs) == ComparisionResult.RightBigger;
+         return Compare(lhs, rhs) == ComparisionResult.LeftLess;
       }
       public static bool operator >(DocPosition lhs, DocPosition rhs)
       {
-         return Compare(lhs, rhs) == ComparisionResult.LeftBigger;
+         return Compare(lhs, rhs) == ComparisionResult.RightLess;
       }
       public static bool operator <=(DocPosition lhs, DocPosition rhs)
       {
-         return Compare(lhs, rhs) != ComparisionResult.LeftBigger;
+         return Compare(lhs, rhs) != ComparisionResult.RightLess;
       }
       public static bool operator >=(DocPosition lhs, DocPosition rhs)
       {
-         return Compare(lhs, rhs) != ComparisionResult.RightBigger;
+         return Compare(lhs, rhs) != ComparisionResult.LeftLess;
       }
 
       private enum ComparisionResult
       {
-         LeftBigger,
+         LeftLess,
          Equal,
-         RightBigger
+         RightLess
       }
 
       private static ComparisionResult Compare(DocPosition lhs, DocPosition rhs)
@@ -74,25 +74,25 @@ namespace VisuPrototype
          if (lhs == null)
          {
             if (rhs != null)
-               return ComparisionResult.RightBigger;
+               return ComparisionResult.LeftLess;
             else
                return ComparisionResult.Equal;
          }
          else if (rhs == null)
-            return ComparisionResult.LeftBigger;
+            return ComparisionResult.RightLess;
 
          if (lhs.LineExtent.Begin < rhs.LineExtent.Begin)
-            return ComparisionResult.RightBigger;
+            return ComparisionResult.LeftLess;
          if (lhs.LineExtent.Begin > rhs.LineExtent.Begin)
-            return ComparisionResult.LeftBigger;
+            return ComparisionResult.RightLess;
          if (lhs.Column < rhs.Column)
-            return ComparisionResult.RightBigger;
+            return ComparisionResult.LeftLess;
          if (lhs.Column > rhs.Column)
-            return ComparisionResult.LeftBigger;
+            return ComparisionResult.RightLess;
          if (lhs.LineExtent.End < rhs.LineExtent.End)
-            return ComparisionResult.RightBigger;
+            return ComparisionResult.LeftLess;
          if (lhs.LineExtent.End > rhs.LineExtent.End)
-            return ComparisionResult.LeftBigger;
+            return ComparisionResult.RightLess;
 
          return ComparisionResult.Equal;
       }

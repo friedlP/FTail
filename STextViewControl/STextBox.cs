@@ -34,7 +34,7 @@ namespace STextViewControl {
 
    public class SelectionRange
    {
-      public SelectionRange(int anchorSelLine, int anchorSelColumn, int curCaretLine, int curCaretColumn/*, int startSelLine, int startSelColumn, int endSelLine, int endSelColumn*/)
+      public SelectionRange(int anchorSelLine, int anchorSelColumn, int curCaretLine, int curCaretColumn)
       {
          AnchorSelLine = anchorSelLine;
          AnchorSelColumn = anchorSelColumn;
