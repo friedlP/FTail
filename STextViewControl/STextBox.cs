@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Keyboard = System.Windows.Input.Keyboard;
 
 namespace STextViewControl {
    public delegate void ScrollBarValueChangedEventHandler(object sender, ScrollBarParameter parameter);
@@ -59,6 +60,7 @@ namespace STextViewControl {
       void VisibleAreaChanged(int firstVisibleLine, int linesOnScreen);
       void UpdateSelection((int line, int column) curCarPos, (int line, int column) anchorPos, (int line, int column) textEndPos, bool newSelection);
       void ValidateSelection();
+      void SelectAll();
    }
 
    public class STextBox : Scintilla {
@@ -188,9 +190,18 @@ namespace STextViewControl {
             case Keys.Home | Keys.Control:
                VScroll(long.MinValue);
                return true;
+            case Keys.A | Keys.Control:
+               ISelectAll();
+               return true;
          }
 
          return base.ProcessCmdKey(ref msg, keyData);
+      }
+
+      private void ISelectAll()
+      {
+         scrollLogic?.SelectAll();
+         ScrollLogic?.ValidateSelection();
       }
 
       public void DataUpdated() {
@@ -272,7 +283,8 @@ namespace STextViewControl {
          var curCarPos = CaretPos(base.CurrentPosition);
          var anchorPos = CaretPos(base.AnchorPosition);
          var textEndPos = CaretPos(base.TextLength);
-
+         bool shiftPressed = Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift) || Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift);
+         newSelection &= !shiftPressed || curCarPos != anchorPos;
          scrollLogic?.UpdateSelection(curCarPos, anchorPos, textEndPos, newSelection);
          newSelection = false;
       }

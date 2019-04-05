@@ -503,6 +503,13 @@ namespace VisuPrototype
          }
       }
 
+
+      public void SelectAll()
+      {
+         selectionDirty = true;
+         //curCaretPos = new DocPosition()
+      }
+
       private DocPosition CreateDocPosition((int line, int column) curCarPos)
       {
          return new DocPosition(LineExtent(curCarPos.line), curCarPos.column);
