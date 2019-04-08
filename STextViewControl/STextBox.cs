@@ -103,9 +103,10 @@ namespace STextViewControl {
          base.Document = new ScintillaNET.Document();
          base.ReadOnly = false;
          base.Text = newText;
+         base.ReadOnly = true;
          base.FirstVisibleLine = newFirstVisibleLine;
          SetSelection(selectionRange);
-         base.ReadOnly = true;
+         UpdateScrollBars();
       }
 
       private void SetSelection(SelectionRange selectionRange)
@@ -431,6 +432,9 @@ namespace STextViewControl {
       const int SB_CTL = 2;
       const int SB_BOTH = 3;
 
+      /// <summary>
+      /// Disables the invisible but still existing horizontal scrollbar of the Scintilla control element.
+      /// </summary>
       private void UpdateScrollBars() {
          ShowScrollBar(this.Handle, SB_HORZ, false);
       }
