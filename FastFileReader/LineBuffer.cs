@@ -75,11 +75,11 @@ namespace FastFileReader
                //System.Diagnostics.Debug.WriteLine("Check scheduled");
                if (sleep <= TimeSpan.Zero)
                {
-                  Update();
+                  Update(true);
                }
                else if (timer == null)
                {
-                  timer = new Timer((state) => Update(), null, sleep, Timeout.InfiniteTimeSpan);
+                  timer = new Timer((state) => Update(true), null, sleep, Timeout.InfiniteTimeSpan);
                }
                else
                {
@@ -89,7 +89,7 @@ namespace FastFileReader
          }
       }
 
-      private void Update()
+      private void Update(bool triggerEvent)
       {
          lock (lockObject)
          {
@@ -108,7 +108,10 @@ namespace FastFileReader
                   updateForced = false;
                   curState = range;
                   //System.Diagnostics.Debug.WriteLine("Invoke listener");
-                  WatchedRangeChanged?.Invoke(this, curState);
+                  if (triggerEvent)
+                  {
+                     WatchedRangeChanged?.Invoke(this, curState);
+                  }
                }
             }
             else
@@ -151,7 +154,7 @@ namespace FastFileReader
          lock (lockObject)
          {
             SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
-            Update();
+            Update(false);
             return curState;
          }
       }
