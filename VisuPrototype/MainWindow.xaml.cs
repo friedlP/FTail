@@ -66,12 +66,12 @@ namespace VisuPrototype {
             
             //lb = new LineBuffer(fw);
 
-            sl = new ScrollLogic(fw);
+            sl = new ScrollLogic(fw, textBox.Dispatcher);
             STextBox.ScrollLogic = sl;
             sl.Init(0, Origin.Begin, STextBox.LinesOnScreen);
 
             //lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
-            
+
             //lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
             //lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
             //lb.WatchRange(0, Origin.Begin, bufferLines, bufferLines, 1000, 1000);

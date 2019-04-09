@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using STextViewControl;
 using static VisuPrototype.MathTools;
+using System.Windows.Threading;
 
 namespace VisuPrototype
 {
@@ -24,19 +25,33 @@ namespace VisuPrototype
       int textViewLinesOnScreen;
       string textViewText;
 
+      readonly Dispatcher dispatcher;
       readonly FileWatcher fw;
       readonly LineBuffer lb;
       LineRange lineRange;
       
       int bufferLines;
 
-      public ScrollLogic(FileWatcher fileWatcher)
+      public ScrollLogic(FileWatcher fileWatcher, Dispatcher dispatcher)
       {
          textViewFirstVisibleLine = 0;
          textViewLinesOnScreen = 30;
+         this.dispatcher = dispatcher;
          fw = fileWatcher;
          lb = new LineBuffer(fw);
+         lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
          UpdateRequiredBufferedLines();
+      }
+
+      private void Lb_WatchedRangeChanged(object sender, LineRange range)
+      {
+         dispatcher.Invoke(() =>
+         {
+            MonitorChanges(() =>
+            {
+               RangeUpdated(range);
+            });
+         });
       }
 
       public void Init(int position, Origin origin, int linesOnScreen)
@@ -402,25 +417,20 @@ namespace VisuPrototype
          StringBuilder stringBuilder = new StringBuilder();
          int firstVisibleLine = 0;
 
+         string text = String.Empty;
          if (range != null)
          {
             int prev = (int)Min(50, range.PreviousLines.Count);
             int next = (int)Min(50 + maxLines, range.NextLines.Count);
             firstVisibleLine = prev;
-            List<FastFileReader.Line> lines = new List<FastFileReader.Line>();
-            for (int i = 0; i < prev; ++i)
-            {
-               lines.Add(range.PreviousLines[range.PreviousLines.Count - prev + i]);
-            }
-            if (range.RequestedLine != null) lines.Add(range.RequestedLine);
-            for (int i = 0; i < next; ++i)
-            {
-               lines.Add(range.NextLines[i]);
-            }
-
-            lines.ForEach(l => stringBuilder.AppendLine(l.Content.TrimEnd()));
+            
+            var lines = range.PreviousLines.Skip(range.PreviousLines.Count - prev);
+            if (range.RequestedLine != null) lines = lines.Append(range.RequestedLine);
+            lines = lines.Concat(range.NextLines.Take(next));
+            
+            char[] newLineCh = new char[] { '\r', '\n' };
+            text = string.Join(System.Environment.NewLine, lines.Select(l => l.Content.TrimEnd(newLineCh)));
          }
-         string text = stringBuilder.ToString().TrimEnd(new char[] { '\r', '\n' });
          if (textViewText != text || textViewFirstVisibleLine != firstVisibleLine)
          {
             //Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] [{nameof(ScrollLogic)}.{nameof(SetText)}] Update Text: {lineRange.RequestedLine.Content}");
@@ -506,8 +516,7 @@ namespace VisuPrototype
 
       public void SelectAll()
       {
-         selectionDirty = true;
-         //curCaretPos = new DocPosition()
+         //selectionDirty = true;
       }
 
       private DocPosition CreateDocPosition((int line, int column) curCarPos)
@@ -522,7 +531,9 @@ namespace VisuPrototype
 
       private int LineFromExtent(Extent extent)
       {
-         if (lineRange.FirstLine.Extent.Begin > extent.Begin)
+         if (lineRange.RequestedLine == null)
+            return int.MaxValue;
+         else if (lineRange.FirstLine.Extent.Begin > extent.Begin)
             return int.MinValue;
          else if (lineRange.LastLine.Extent.Begin < extent.Begin)
             return int.MaxValue;
