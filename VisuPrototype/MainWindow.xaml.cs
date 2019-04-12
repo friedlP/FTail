@@ -68,6 +68,11 @@ namespace VisuPrototype {
 
             sl = new ScrollLogic(fw, textBox.Dispatcher);
             STextBox.ScrollLogic = sl;
+            sl.FollowTail = followTail;
+            eofMarker.Fill = new SolidColorBrush(Color.FromRgb(127, 127, 127));
+            sl.IsAtEndOfFileChanged += (_, isAtEnd) => {
+               eofMarker.Fill = new SolidColorBrush(isAtEnd ? Color.FromRgb(0, 0, 255) : Color.FromRgb(127, 127, 127));
+            };
             sl.Init(0, Origin.Begin, STextBox.LinesOnScreen);
 
             //lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
@@ -76,6 +81,24 @@ namespace VisuPrototype {
             //lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
             //lb.WatchRange(0, Origin.Begin, bufferLines, bufferLines, 1000, 1000);
          }
+      }
+
+      bool followTail;
+
+      private void MiFollowTailNo_Click(object sender, RoutedEventArgs e)
+      {
+         miFollowTailYes.IsChecked = false;
+         followTail = false;
+         if (sl != null)
+            sl.FollowTail = false;
+      }
+
+      private void MiFollowTailYes_Click(object sender, RoutedEventArgs e)
+      {
+         miFollowTailNo.IsChecked = false;
+         followTail = true;
+         if (sl != null)
+            sl.FollowTail = true;
       }
    }
 }

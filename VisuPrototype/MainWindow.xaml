@@ -10,13 +10,18 @@
         Title="FTail" Height="378.455" Width="630.285"
         Background="{StaticResource {x:Static SystemColors.ControlBrushKey}}">
     <Grid>
-        <Menu x:Name="menu1" Margin="0" VerticalAlignment="Top" BorderThickness="0">
+        <Menu x:Name="menu1" Margin="0,0,26,0" VerticalAlignment="Top" BorderThickness="0">
             <MenuItem x:Name="miFile" Header="_File" Margin="5,0,0,0">
                 <MenuItem x:Name="miOpenFile" Header="_Open File" Click="MiOpenFile_Click" />
             </MenuItem>
+            <MenuItem x:Name="miFollowTail" Header="_Follow Tail">
+                <MenuItem x:Name="miFollowTailNo" Header="_No" IsCheckable="True" IsChecked="True" Click="MiFollowTailNo_Click"/>
+                <MenuItem x:Name="miFollowTailYes" Header="_Yes" IsCheckable="True" Click="MiFollowTailYes_Click" />
+            </MenuItem>
         </Menu>
-        <stextviewcontrol:STextView Margin="10,49,10,10" x:Name="textBox" />
+        <stextviewcontrol:STextView Margin="10,49,10,10" x:Name="textBox"/>
         <Label Content="Encoding:" HorizontalAlignment="Left" Margin="10,18,0,0" VerticalAlignment="Top" Width="64"/>
         <Label x:Name="encodingLabel" Content="" Margin="79,18,10,0" RenderTransformOrigin="-0.292,-0.142" Height="26" VerticalAlignment="Top"/>
+        <Ellipse x:Name="eofMarker" Fill="#FFF4F4F5" HorizontalAlignment="Right" Height="11" Margin="0,4,10,0" Stroke="Black" VerticalAlignment="Top" Width="11" RenderTransformOrigin="1.583,0.75"/>
     </Grid>
 </Window>

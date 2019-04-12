@@ -32,6 +32,8 @@ namespace VisuPrototype
       
       int bufferLines;
 
+      public bool FollowTail { get; set; }
+
       public ScrollLogic(FileWatcher fileWatcher, Dispatcher dispatcher)
       {
          textViewFirstVisibleLine = 0;
@@ -45,11 +47,19 @@ namespace VisuPrototype
 
       private void Lb_WatchedRangeChanged(object sender, LineRange range)
       {
-         dispatcher.Invoke(() =>
+         dispatcher.InvokeAsync(() =>
          {
             MonitorChanges(() =>
             {
-               RangeUpdated(range);
+               if (isAtEndOfFile && FollowTail)
+               {
+                  lineRange = range;
+                  IntVScroll(long.MaxValue * curScrollBarParameter.SmallChange, long.MaxValue, force: true);
+               }
+               else
+               {
+                  RangeUpdated(range);
+               }
             });
          });
       }
@@ -74,7 +84,6 @@ namespace VisuPrototype
             scrollPosition = null;
          });
       }
-
 
       public void VScroll(long scrollLines)
       {
@@ -128,6 +137,26 @@ namespace VisuPrototype
          if(ScrollBarParameterChanged(oldScrollBarParameter, curScrollBarParameter))
          {
             VScrollBarParameterChanged?.Invoke(this, curScrollBarParameter);
+            IsAtEndOfFile = curScrollBarParameter.EndValue == 1;
+         }
+      }
+
+      public EventHandler<bool> IsAtEndOfFileChanged;
+
+      private bool isAtEndOfFile;
+      public bool IsAtEndOfFile
+      {
+         get
+         {
+            return isAtEndOfFile;
+         }
+         set
+         {
+            if (value != isAtEndOfFile)
+            {
+               isAtEndOfFile = value;
+               IsAtEndOfFileChanged?.Invoke(this, isAtEndOfFile);
+            }
          }
       }
 
@@ -185,7 +214,7 @@ namespace VisuPrototype
 
       private int FullyVisibleLines => textViewLinesOnScreen;
       private int PartiallyVisibleLines => FullyVisibleLines + 1;
-
+            
       private void VScrollHandler(double scroll, long scrollLines, bool force)
       {
          if (lineRange != null && lineRange.RequestedLine != null)
@@ -480,36 +509,36 @@ namespace VisuPrototype
             {
                startSelPos = newAnchorPosition;
                endSelPos = curCaretPos;
-               Debug.WriteLine($"New (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-                  + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-                  + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-                  + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+               Debug.WriteLine($"New (forward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
+                  + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
+                  + $"startSelPos=({startSelPos?.LineExtent?.Begin}/{startSelPos?.Column}) "
+                  + $"endSelPos=({endSelPos?.LineExtent?.Begin}/{endSelPos?.Column})");
             }
             else
             {
                startSelPos = curCaretPos;
                endSelPos = newAnchorPosition;
-               Debug.WriteLine($"New (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-                  + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-                  + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-                  + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+               Debug.WriteLine($"New (backward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
+                  + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
+                  + $"startSelPos=({startSelPos?.LineExtent?.Begin}/{startSelPos?.Column}) "
+                  + $"endSelPos=({endSelPos?.LineExtent?.Begin}/{endSelPos?.Column})");
             }
          }
          else if (newCaretPosition > curCaretPos && curCarPos != textStartPos)
          {
             curCaretPos = newCaretPosition;
-            Debug.WriteLine($"Upd (forward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-               + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-               + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-               + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+            Debug.WriteLine($"Upd (forward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
+               + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
+               + $"startSelPos=({startSelPos?.LineExtent?.Begin}/{startSelPos?.Column}) "
+               + $"endSelPos=({endSelPos?.LineExtent?.Begin}/{endSelPos?.Column})");
          }
          else if (newCaretPosition < curCaretPos && curCarPos != textEndPos)
          {
             curCaretPos = newCaretPosition;
-            Debug.WriteLine($"Upd (backward): curCaretPos=({curCaretPos?.LineExtent.Begin}/{curCaretPos?.Column}) "
-               + $"anchorPosition=({anchorPosition?.LineExtent.Begin}/{anchorPosition?.Column}) "
-               + $"startSelPos=({startSelPos?.LineExtent.Begin}/{startSelPos?.Column}) "
-               + $"endSelPos=({endSelPos?.LineExtent.Begin}/{endSelPos?.Column})");
+            Debug.WriteLine($"Upd (backward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
+               + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
+               + $"startSelPos=({startSelPos?.LineExtent?.Begin}/{startSelPos?.Column}) "
+               + $"endSelPos=({endSelPos?.LineExtent?.Begin}/{endSelPos?.Column})");
          }
       }
 

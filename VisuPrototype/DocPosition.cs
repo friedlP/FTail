@@ -81,17 +81,17 @@ namespace VisuPrototype
          else if (rhs == null)
             return ComparisionResult.RightLess;
 
-         if (lhs.LineExtent.Begin < rhs.LineExtent.Begin)
+         if (lhs.LineExtent?.Begin < rhs.LineExtent?.Begin)
             return ComparisionResult.LeftLess;
-         if (lhs.LineExtent.Begin > rhs.LineExtent.Begin)
+         if (lhs.LineExtent?.Begin > rhs.LineExtent?.Begin)
             return ComparisionResult.RightLess;
          if (lhs.Column < rhs.Column)
             return ComparisionResult.LeftLess;
          if (lhs.Column > rhs.Column)
             return ComparisionResult.RightLess;
-         if (lhs.LineExtent.End < rhs.LineExtent.End)
+         if (lhs.LineExtent?.End < rhs.LineExtent?.End)
             return ComparisionResult.LeftLess;
-         if (lhs.LineExtent.End > rhs.LineExtent.End)
+         if (lhs.LineExtent?.End > rhs.LineExtent?.End)
             return ComparisionResult.RightLess;
 
          return ComparisionResult.Equal;
