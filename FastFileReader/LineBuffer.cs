@@ -159,6 +159,21 @@ namespace FastFileReader
          }
       }
 
+      public LineRange FetchRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      {
+         lock (lockObject)
+         {
+            if (position >= 0 && origin == Origin.Begin || position < 0 && origin == Origin.End)
+            {
+               return reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+            }
+            else
+            {
+               return new LineRange();
+            }
+         }
+      }
+
       private void SetRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
       {
          this.position = position;

@@ -72,6 +72,39 @@ namespace STextViewControl {
       public ScrollBarParameter HScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
       public ScrollBarParameter VScrollBarValue { get; private set; } = new ScrollBarParameter(0, 1, 0.01, 0.1);
 
+      public STextBox() : base()
+      {
+         //var contextMenuStrip = new ContextMenuStrip();
+         //var selectAll = new ToolStripLabel("Select All");
+         //selectAll.Click += SelectAll_Click;
+         //contextMenuStrip.Items.Add(selectAll);
+
+         //ContextMenuStrip = contextMenuStrip;
+
+         var contextMenu = new ContextMenu();
+
+         var copy = new MenuItem("Copy");
+         copy.Click += Copy_Click;
+         contextMenu.MenuItems.Add(copy);
+
+         contextMenu.MenuItems.Add("-");
+
+         var selectAll = new MenuItem("Select All");
+         selectAll.Click += SelectAll_Click;
+         contextMenu.MenuItems.Add(selectAll);
+
+         ContextMenu = contextMenu;
+      }
+
+      private void Copy_Click(object sender, EventArgs e)
+      {
+      }
+
+      private void SelectAll_Click(object sender, EventArgs e)
+      {
+         ISelectAll();
+      }
+
       IScrollLogic scrollLogic;
       public IScrollLogic ScrollLogic {
          get {

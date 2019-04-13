@@ -508,7 +508,7 @@ namespace VisuPrototype
             if (newCaretPosition >= newAnchorPosition)
             {
                startSelPos = newAnchorPosition;
-               endSelPos = curCaretPos;
+               endSelPos = newCaretPosition;
                Debug.WriteLine($"New (forward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
                   + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
                   + $"startSelPos=({startSelPos?.LineExtent?.Begin}/{startSelPos?.Column}) "
@@ -516,7 +516,7 @@ namespace VisuPrototype
             }
             else
             {
-               startSelPos = curCaretPos;
+               startSelPos = newCaretPosition;
                endSelPos = newAnchorPosition;
                Debug.WriteLine($"New (backward): curCaretPos=({curCaretPos?.LineExtent?.Begin}/{curCaretPos?.Column}) "
                   + $"anchorPosition=({anchorPosition?.LineExtent?.Begin}/{anchorPosition?.Column}) "
@@ -545,7 +545,13 @@ namespace VisuPrototype
 
       public void SelectAll()
       {
-         //selectionDirty = true;
+         LineRange firstLineRange = lb.FetchRange(0, Origin.Begin, 0, 0, 0, 0);
+         LineRange lastLineRange = lb.FetchRange(-1, Origin.End, 0, 0, 0, 0);
+         anchorPosition = new DocPosition(firstLineRange.RequestedLine?.Extent, 0);
+         curCaretPos = new DocPosition(lastLineRange.RequestedLine?.Extent, lastLineRange.RequestedLine?.Content?.Length ?? 0);
+         startSelPos = new DocPosition(firstLineRange.RequestedLine?.Extent, 0);
+         endSelPos = new DocPosition(lastLineRange.RequestedLine?.Extent, lastLineRange.RequestedLine?.Content?.Length ?? 0);
+         selectionDirty = true;
       }
 
       private DocPosition CreateDocPosition((int line, int column) curCarPos)
