@@ -22,17 +22,13 @@ namespace VisuPrototype {
    /// </summary>
    public partial class MainWindow : Window {
       FileWatcher fw;
-      object locker = new object();
-
       ScrollLogic sl;
+      bool followTail;
 
       public MainWindow() {
          
 
          InitializeComponent();
-
-         //STextBox.SetVisibleRangeCalculator(VisibleRangeCalculator);
-         //STextBox.SetVerticalScrollHandler(VScrollHandler);
 
          STextBox.Styles[0].Font = "Courier New";
          STextBox.Styles[0].Size = 9;
@@ -58,13 +54,10 @@ namespace VisuPrototype {
          fileBrowserDialog.Multiselect = false;
          if (fileBrowserDialog.ShowDialog() == true) {
             fw?.Dispose();
-            //lb?.Dispose();
 
             fw = new FileWatcher(fileBrowserDialog.FileName);
             Lb_EcondingChanged(this, fw.Encoding);
             fw.EcondingChanged += Lb_EcondingChanged;
-            
-            //lb = new LineBuffer(fw);
 
             sl = new ScrollLogic(fw, textBox.Dispatcher);
             STextBox.ScrollLogic = sl;
@@ -74,31 +67,26 @@ namespace VisuPrototype {
                eofMarker.Fill = new SolidColorBrush(isAtEnd ? Color.FromRgb(0, 0, 255) : Color.FromRgb(127, 127, 127));
             };
             sl.Init(0, Origin.Begin, STextBox.LinesOnScreen);
-
-            //lb.WatchedRangeChanged += Lb_WatchedRangeChanged;
-
-            //lb.MinTimeBetweenUpdates = TimeSpan.FromSeconds(0.1);
-            //lb.WatchRange(-1, Origin.End, 100, 100, 1000, 1000);
-            //lb.WatchRange(0, Origin.Begin, bufferLines, bufferLines, 1000, 1000);
          }
       }
 
-      bool followTail;
+      void SetFllowTail(bool follow)
+      {
+         followTail = follow;
+         miFollowTailYes.IsChecked = follow;
+         miFollowTailNo.IsChecked = !follow;
+         if (sl != null)
+            sl.FollowTail = follow;
+      }
 
       private void MiFollowTailNo_Click(object sender, RoutedEventArgs e)
       {
-         miFollowTailYes.IsChecked = false;
-         followTail = false;
-         if (sl != null)
-            sl.FollowTail = false;
+         SetFllowTail(false);
       }
 
       private void MiFollowTailYes_Click(object sender, RoutedEventArgs e)
       {
-         miFollowTailNo.IsChecked = false;
-         followTail = true;
-         if (sl != null)
-            sl.FollowTail = true;
+         SetFllowTail(true);
       }
    }
 }
