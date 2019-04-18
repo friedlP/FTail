@@ -61,11 +61,14 @@ namespace STextViewControl {
       void UpdateSelection((int line, int column) curCarPos, (int line, int column) anchorPos, (int line, int column) textEndPos, bool newSelection);
       void ValidateSelection();
       void SelectAll();
+      void CopySelection();
    }
 
    public class STextBox : Scintilla {
       int scrollLines = System.Windows.Forms.SystemInformation.MouseWheelScrollLines;
       bool newSelection = false;
+      int lastCaretPos;
+      int lastAnchorPos;
 
       public event ScrollBarValueChangedEventHandler HScrollBarValueChanged;
       public event ScrollBarValueChangedEventHandler VScrollBarValueChanged;
@@ -96,8 +99,14 @@ namespace STextViewControl {
          ContextMenu = contextMenu;
       }
 
+      private void CopySelection()
+      {
+         scrollLogic?.CopySelection();
+      }
+
       private void Copy_Click(object sender, EventArgs e)
       {
+         CopySelection();
       }
 
       private void SelectAll_Click(object sender, EventArgs e)
@@ -155,6 +164,8 @@ namespace STextViewControl {
             base.AnchorPosition = anchorPos;
             base.CurrentPosition = caretPos;
          }
+         lastAnchorPos = anchorPos;
+         lastCaretPos = caretPos;
       }
 
       private int ToPosition(int line, int column)
@@ -227,6 +238,10 @@ namespace STextViewControl {
             case Keys.A | Keys.Control:
                ISelectAll();
                return true;
+            case Keys.C | Keys.Control:
+            case Keys.Insert | Keys.Control:
+               CopySelection();
+               return true;            
          }
 
          return base.ProcessCmdKey(ref msg, keyData);
@@ -317,8 +332,9 @@ namespace STextViewControl {
          var curCarPos = CaretPos(base.CurrentPosition);
          var anchorPos = CaretPos(base.AnchorPosition);
          var textEndPos = CaretPos(base.TextLength);
+         Debug.WriteLine($"Caret: {lastCaretPos}->{CurrentPosition} Anchor: {lastAnchorPos}->{AnchorPosition}");
          bool shiftPressed = Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift) || Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift);
-         newSelection &= !shiftPressed || curCarPos != anchorPos;
+         newSelection &= !shiftPressed || (lastCaretPos != CurrentPosition && lastAnchorPos != AnchorPosition);
          scrollLogic?.UpdateSelection(curCarPos, anchorPos, textEndPos, newSelection);
          newSelection = false;
       }

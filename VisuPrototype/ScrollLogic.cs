@@ -584,6 +584,27 @@ namespace VisuPrototype
          }
          return 0;
       }
+
+      public void CopySelection()
+      {
+         DocPosition begin = startSelPos;
+         if (anchorPosition < begin)
+            begin = anchorPosition;
+         if (curCaretPos < begin)
+            begin = curCaretPos;
+
+         DocPosition end = endSelPos;
+         if (anchorPosition > end)
+            end = anchorPosition;
+         if (curCaretPos > begin)
+            end = curCaretPos;
+
+         if (begin?.LineExtent != null && end?.LineExtent != null)
+         {
+            string str = lb.Fetch(begin.LineExtent.Begin, begin.Column, end.LineExtent.End, end.Column);
+            System.Windows.Clipboard.SetText(str);
+         }
+      }
    }
 
 }

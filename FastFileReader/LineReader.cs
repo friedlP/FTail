@@ -62,6 +62,8 @@ namespace FastFileReader
             .ToArray();
       }
 
+      public Encoding Encoding => encoding;
+
       public long StreamLength => blockReader.StreamLength;
 
       public char[] TrimCharacters { get; private set; }
@@ -166,6 +168,11 @@ namespace FastFileReader
 
          string str = encoding.GetString(strBytes);
          return new RawLine(str, extent, strBytes);
+      }
+
+      public byte[] Read(long begin, long end)
+      {
+         return blockReader.ReadRange(begin, end);
       }
 
       bool IsNewLine(BlockReader blockReader, LineEndings lineEndings, ICharacterReader charReader, long position, out long begin, out long end)

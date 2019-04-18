@@ -216,6 +216,63 @@ namespace FastFileReader
          return range.RequestedLine;
       }
 
+      public string ReadRange(long beginPosFirstLine, int beginCol, long endPosLastLine, int endCol)
+      {
+         Stream stream = null;
+         try
+         {
+            stream = GetStream();
+            if (stream == null)
+            {
+               HandleStreamUnavailable();
+               return String.Empty;
+            }
+
+            LineReader lineReader = new LineReader(stream, GetEncoding(stream));
+            RawLine firstLine = lineReader.Read(beginPosFirstLine);
+            RawLine lastLine = lineReader.Read(endPosLastLine - 1);
+
+            // Special case: Begin and end in the same line
+            if (firstLine.Extent == lastLine.Extent)
+            {
+               if (firstLine.Content.Length > beginCol && endCol > beginCol)
+               {
+                  return firstLine.Content.Substring(beginCol, endCol - beginCol);
+               }
+               else
+               {
+                  return String.Empty;
+               }
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            // First line:
+            if (firstLine.Content.Length > beginCol)
+               sb.Append(firstLine.Content.Substring(beginCol));
+
+            // Lines between
+            if (firstLine.End < lastLine.Begin)
+            {
+               byte[] bytes = lineReader.Read(firstLine.End + 1, lastLine.Begin - 1);
+               sb.Append(lineReader.Encoding.GetString(bytes));
+            }
+
+            // Last line:
+            if (lastLine.Content.Length > endCol)
+               sb.Append(lastLine.Content.Substring(0, endCol));
+            else
+               sb.Append(lastLine.Content);
+
+            return sb.ToString();
+         }
+         catch (Exception e)
+         {
+            HandleError(stream, e);
+            return String.Empty;
+         }
+      }
+
       public virtual Line NextLine(Line line)
       {
          if (line == null)

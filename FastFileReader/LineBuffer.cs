@@ -211,5 +211,16 @@ namespace FastFileReader
 
          disposed = true;
       }
+
+      public string Fetch(long beginPosFirstLine, int beginCol, long endPosLastLine, int endCol)
+      {
+         if (beginPosFirstLine >= endPosLastLine)
+            return String.Empty;
+
+         lock (lockObject)
+         {
+            return reader.ReadRange(beginPosFirstLine, beginCol, endPosLastLine, endCol);
+         }
+      }
    }
 }
