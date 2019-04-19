@@ -219,7 +219,7 @@ namespace FastFileReader
 
          lock (lockObject)
          {
-            return reader.ReadRange(beginPosFirstLine, beginCol, endPosLastLine, endCol);
+            return reader.FetchRange(beginPosFirstLine, beginCol, endPosLastLine, endCol);
          }
       }
    }

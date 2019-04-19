@@ -216,7 +216,7 @@ namespace FastFileReader
          return range.RequestedLine;
       }
 
-      public string ReadRange(long beginPosFirstLine, int beginCol, long endPosLastLine, int endCol)
+      public string FetchRange(long beginPosFirstLine, int beginCol, long endPosLastLine, int endCol)
       {
          Stream stream = null;
          try
