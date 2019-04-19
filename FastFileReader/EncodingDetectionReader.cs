@@ -254,7 +254,7 @@ namespace FastFileReader
             // Lines between
             if (firstLine.End < lastLine.Begin)
             {
-               byte[] bytes = lineReader.Read(firstLine.End + 1, lastLine.Begin - 1);
+               byte[] bytes = lineReader.Read(firstLine.End, lastLine.Begin);
                sb.Append(lineReader.Encoding.GetString(bytes));
             }
 
