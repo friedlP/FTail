@@ -54,7 +54,7 @@ namespace VisuPrototype
                if (isAtEndOfFile && FollowTail)
                {
                   lineRange = range;
-                  IntVScroll(long.MaxValue * curScrollBarParameter.SmallChange, long.MaxValue, force: true);
+                  IntVScroll(long.MaxValue * curScrollBarParameter.SmallChange, long.MaxValue, force: true, scrollToEnd: true);
                }
                else
                {
@@ -206,16 +206,16 @@ namespace VisuPrototype
             IntVScroll(diff, diffLines);
       }
 
-      private void IntVScroll(double scroll = 0.0, long scrollLines = 0, bool force = false)
+      private void IntVScroll(double scroll = 0.0, long scrollLines = 0, bool force = false, bool scrollToEnd = false)
       {
-         VScrollHandler(scroll, scrollLines, force);
+         VScrollHandler(scroll, scrollLines, force, scrollToEnd);
          UpdateVScrollBar();
       }
 
       private int FullyVisibleLines => textViewLinesOnScreen;
       private int PartiallyVisibleLines => FullyVisibleLines + 1;
             
-      private void VScrollHandler(double scroll, long scrollLines, bool force)
+      private void VScrollHandler(double scroll, long scrollLines, bool force, bool scrollToEnd)
       {
          if (lineRange != null && lineRange.RequestedLine != null)
          {
@@ -233,15 +233,19 @@ namespace VisuPrototype
 
             if (possibleScroll != 0 || force)
             {
-               UpdateRange(scroll, possibleScroll);
+               UpdateRange(scroll, possibleScroll, scrollToEnd);
             }
          }
       }
 
-      private void UpdateRange(double scroll, long scrollLinesPossible)
+      private void UpdateRange(double scroll, long scrollLinesPossible, bool scrollToEnd)
       {
          Extent newExtent = lineRange.RelExtent(scrollLinesPossible);
-         if (newExtent != null)
+         if (scrollToEnd)
+         {
+            UpdateRange(-1, Origin.End);
+         }
+         else if (newExtent != null)
          {
             UpdateRange(newExtent.Begin, Origin.Begin);
          }
@@ -395,6 +399,8 @@ namespace VisuPrototype
 
          double relPosFirstInLoaded = (double)nPrev / n;
          double relPosLastInLoaded = (double)(nPrev + linesOnScreen) / n;
+
+         Debug.WriteLine($"{linesOnScreen} ... {relPosFirstInLoaded} --- {relPosLastInLoaded}");
 
          double relPosFirstLoaded = (double)lineRange.FirstExtent.Begin / lineRange.StreamLength;
          double relPosLastLoaded = (double)lineRange.LastExtent.End / lineRange.StreamLength;
