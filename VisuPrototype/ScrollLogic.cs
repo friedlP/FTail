@@ -106,13 +106,14 @@ namespace VisuPrototype
 
          MonitorChanges(() =>
          {
+            bool scrollToEnd = isAtEndOfFile && FollowTail;
             if (scroll != 0)
             {
-               IntVScroll(scroll * curScrollBarParameter.SmallChange, scroll);
+               IntVScroll(scroll * curScrollBarParameter.SmallChange, scroll, scrollToEnd: scrollToEnd);
             }
             else if (linesOnScreenChanged)
             {
-               IntVScroll(force: true);
+               IntVScroll(force: true, scrollToEnd: scrollToEnd);
             }
          });         
       }
