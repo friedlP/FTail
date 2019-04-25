@@ -59,6 +59,7 @@ namespace VisuPrototype
                else
                {
                   RangeUpdated(range);
+                  UpdateVScrollBar();
                }
             });
          });
@@ -71,7 +72,7 @@ namespace VisuPrototype
 
          MonitorChanges(() =>
          {
-            UpdateRange(position, origin);
+            UpdateRange(position, origin, Origin.Begin);
          });
       }
       
@@ -243,11 +244,11 @@ namespace VisuPrototype
          Extent newExtent = lineRange.RelExtent(scrollLinesPossible);
          if (scrollToEnd)
          {
-            UpdateRange(-1, Origin.End);
+            UpdateRange(-1, Origin.End, Origin.End);
          }
          else if (newExtent != null)
          {
-            UpdateRange(newExtent.Begin, Origin.Begin);
+            UpdateRange(newExtent.Begin, Origin.Begin, Origin.Begin);
          }
          else
          {
@@ -278,7 +279,7 @@ namespace VisuPrototype
                pos -= Round((1 - sValue) * lineLen);                    // Position within the line
             }
 
-            UpdateRange(pos, origin);
+            UpdateRange(pos, origin, Origin.Begin);
          }
       }
 
@@ -300,11 +301,11 @@ namespace VisuPrototype
          }
       }
 
-      private void UpdateRange(long position, Origin origin)
+      private void UpdateRange(long position, Origin origin, Origin watchRange)
       {
          int nextLines = bufferLines + (origin == Origin.Begin ? textViewLinesOnScreen : 0);
          int prevLines = bufferLines + (origin == Origin.End ? textViewLinesOnScreen : 0);
-         LineRange newLineRange = lb.ReadRange(position, origin, prevLines, nextLines, 1000, 1000);
+         LineRange newLineRange = lb.ReadRange(position, origin, prevLines, nextLines, 1000, 1000, watchRange);
          if (origin == Origin.End)
             newLineRange = ShiftLineRange(newLineRange, -(textViewLinesOnScreen - 1));
          RangeUpdated(newLineRange);
@@ -400,8 +401,6 @@ namespace VisuPrototype
          double relPosFirstInLoaded = (double)nPrev / n;
          double relPosLastInLoaded = (double)(nPrev + linesOnScreen) / n;
 
-         Debug.WriteLine($"{linesOnScreen} ... {relPosFirstInLoaded} --- {relPosLastInLoaded}");
-
          double relPosFirstLoaded = (double)lineRange.FirstExtent.Begin / lineRange.StreamLength;
          double relPosLastLoaded = (double)lineRange.LastExtent.End / lineRange.StreamLength;
 
@@ -415,6 +414,8 @@ namespace VisuPrototype
             relBeginPos = ToRange(relBeginPos - (relEndPos - 1), 0, 1);
             relEndPos = 1;
          }
+         Debug.Write($"{linesOnScreen} ... {relPosFirstInLoaded} --- {relPosLastInLoaded}");
+         Debug.WriteLine($" ... {relBeginPos} --- {relEndPos}");
          return (relBeginPos, relEndPos);
       }
 
@@ -572,7 +573,7 @@ namespace VisuPrototype
 
       private int LineFromExtent(Extent extent)
       {
-         if (lineRange.RequestedLine == null)
+         if (lineRange?.RequestedLine == null)
             return int.MaxValue;
          else if (lineRange.FirstLine.Extent.Begin > extent.Begin)
             return int.MinValue;

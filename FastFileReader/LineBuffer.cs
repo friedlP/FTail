@@ -19,6 +19,7 @@ namespace FastFileReader
       int maxFoll;
       int maxPrevExtent;
       int maxFollExtent;
+      Origin watchOrigin = Origin.Begin;
       LineRange curState;
       DateTime lastUpdate;
       bool updateScheduled;
@@ -103,6 +104,17 @@ namespace FastFileReader
             {
                LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
 
+               if (origin == Origin.Begin && watchOrigin == Origin.End)
+               {
+                  position -= range.StreamLength;
+                  origin = Origin.End;
+               } 
+               else if (origin == Origin.End && watchOrigin == Origin.Begin)
+               {
+                  position += range.StreamLength;
+                  origin = Origin.Begin;
+               }
+
                if (range != curState || updateForced)
                {
                   updateForced = false;
@@ -139,21 +151,21 @@ namespace FastFileReader
          }
       }
 
-      public void WatchRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      public void WatchRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent, Origin watchOrigin)
       {
          lock (lockObject)
          {
-            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent, watchOrigin);
 
             CheckRange();
          }
       }
 
-      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      public LineRange ReadRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent, Origin watchOrigin)
       {
          lock (lockObject)
          {
-            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+            SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent, watchOrigin);
             Update(false);
             return curState;
          }
@@ -174,7 +186,7 @@ namespace FastFileReader
          }
       }
 
-      private void SetRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent)
+      private void SetRange(long position, Origin origin, int maxPrev, int maxFoll, int maxPrevExtent, int maxFollExtent, Origin watchOrigin)
       {
          this.position = position;
          this.origin = origin;
@@ -182,6 +194,7 @@ namespace FastFileReader
          this.maxFoll = maxFoll;
          this.maxPrevExtent = maxPrevExtent;
          this.maxFollExtent = maxFollExtent;
+         this.watchOrigin = watchOrigin;
       }
 
       public void Dispose()
