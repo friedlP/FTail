@@ -79,10 +79,10 @@ namespace FastFileReader
          }
       }
 
-      public override LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt)
+      public override LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNExtExt, LineRange currentState = null)
       {
          CheckForFileModifications();
-         return base.ReadRange(position, origin, maxPrev, maxNext, maxPrevExt, maxNExtExt);
+         return base.ReadRange(position, origin, maxPrev, maxNext, maxPrevExt, maxNExtExt, currentState);
       }
 
       protected override void EncodingValidated()
@@ -125,25 +125,25 @@ namespace FastFileReader
       private void Fsw_Renamed(object sender, RenamedEventArgs e)
       {
          resetRequired = 1;
-         ReportStreamChanged();
+         ReportStreamChanged(e.ChangeType);
       }
 
       private void Fsw_Deleted(object sender, FileSystemEventArgs e)
       {
          resetRequired = 1;
-         ReportStreamChanged();
+         ReportStreamChanged(e.ChangeType);
       }
 
       private void Fsw_Created(object sender, FileSystemEventArgs e)
       {
          resetRequired = 1;
-         ReportStreamChanged();
+         ReportStreamChanged(e.ChangeType);
       }
 
       private void Fsw_Changed(object sender, FileSystemEventArgs e)
       {
          fileModificationReported = 1;
-         ReportStreamChanged();
+         ReportStreamChanged(e.ChangeType);
       }
 
       public override void Dispose()

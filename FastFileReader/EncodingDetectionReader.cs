@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace FastFileReader
@@ -15,10 +14,10 @@ namespace FastFileReader
 
    public delegate void ErrorEventHandler(object sender, Exception e);
    public delegate void EncodingChangedEventHandler(object sender, Encoding enc);
-   public delegate void StreamChangedEventHandler(object sender);
+   public delegate void StreamChangedEventHandler(object sender, WatcherChangeTypes changeType);
    public delegate void StreamUnavailableHandler(object sender);
 
-   public abstract class EncodingDetectionReader : IDisposable
+   public abstract partial class EncodingDetectionReader : IDisposable
    {
       public event ErrorEventHandler Error;
       public event EncodingChangedEventHandler EcondingChanged;
@@ -72,7 +71,7 @@ namespace FastFileReader
 
       private Encoding CurEncoding => encoding ?? Encoding.Default;
 
-      public virtual LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNextExt)
+      public virtual LineRange ReadRange(long position, Origin origin, int maxPrev, int maxNext, int maxPrevExt, int maxNextExt, LineRange currentState = null)
       {
          Stream stream = null;
          try
@@ -93,25 +92,25 @@ namespace FastFileReader
                if (position < 0) position = 0;
             }
 
-            RawLine curLine = null;
-            List<RawLine> prev = new List<RawLine>();
-            List<RawLine> next = new List<RawLine>();
+            Line curLine = null;
+            List<Line> prev = new List<Line>();
+            List<Line> next = new List<Line>();
             List<Extent> prevExtent = new List<Extent>();
             List<Extent> nextExtent = new List<Extent>();
-
-            curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNextExt, prev, next, prevExtent, nextExtent);
+            Action<RawLine> feedDetector = (line) => { if (line != null) FeedDetector(line, lineReader); };
+            curLine = ReadRange(lineReader, position, maxPrev, maxNext, maxPrevExt, maxNextExt, prev, next, prevExtent, nextExtent, currentState, feedDetector);
 
             int enc = CurEncoding.CodePage;
 
-            foreach (RawLine line in prev)
-            {
-               FeedDetector(line, lineReader);
-            }
-            if (curLine != null) FeedDetector(curLine, lineReader);
-            foreach (RawLine line in next)
-            {
-               FeedDetector(line, lineReader);
-            }
+            //foreach (Line line in prev)
+            //{
+            //   FeedDetector(line, lineReader);
+            //}
+            //if (curLine != null) FeedDetector(curLine, lineReader);
+            //foreach (Line line in next)
+            //{
+            //   FeedDetector(line, lineReader);
+            //}
 
             if (CurEncoding.CodePage != enc)
             {
@@ -135,21 +134,24 @@ namespace FastFileReader
          }
       }
 
-      private static RawLine ReadRange(LineReader lineReader, long position, int maxPrev, int maxNext, int maxPrevExtent, int maxNextExtent,
-                                       List<RawLine> prev, List<RawLine> next, List<Extent> prevExtent, List<Extent> nextExtent)
+      private static Line ReadRange(LineReader lineReader, long position, int maxPrev, int maxNext, int maxPrevExtent, int maxNextExtent,
+                                       List<Line> prev, List<Line> next, List<Extent> prevExtent, List<Extent> nextExtent, LineRange currentState = null,
+                                       Action<RawLine> feedDetector = null)
       {
          prev.Clear();
          next.Clear();
          prevExtent.Clear();
          nextExtent.Clear();
-         RawLine curLine = lineReader.Read(position);
+         currentState = lineReader.StreamLength >= currentState?.StreamLength ? currentState : null;
+         CachedReader reader = new CachedReader(lineReader, currentState, feedDetector);
+         Line curLine = reader.Read(position);
 
          if (curLine != null)
          {
-            RawLine l = curLine;
+            Line l = curLine;
             for (int prevRead = 0; prevRead < maxPrev; ++prevRead)
             {
-               l = lineReader.ReadPrevious(l);
+               l = reader.ReadPrevious(l);
                if (l != null)
                {
                   prev.Insert(0, l);
@@ -164,7 +166,7 @@ namespace FastFileReader
                Extent e = l.Extent;
                for (int prevRead = 0; prevRead < maxPrevExtent; ++prevRead)
                {
-                  e = lineReader.GetLineExtent(e.Begin - 1);
+                  e = reader.GetLineExtent(e.Begin - 1);
                   if (e != null)
                   {
                      prevExtent.Insert(0, e);
@@ -179,7 +181,7 @@ namespace FastFileReader
             l = curLine;
             for (int nextRead = 0; nextRead < maxNext; ++nextRead)
             {
-               l = lineReader.ReadNext(l);
+               l = reader.ReadNext(l);
                if (l != null)
                {
                   next.Add(l);
@@ -194,7 +196,7 @@ namespace FastFileReader
                Extent e = l.Extent;
                for (int nextRead = 0; nextRead < maxNextExtent; ++nextRead)
                {
-                  e = lineReader.GetLineExtent(e.End);
+                  e = reader.GetLineExtent(e.End);
                   if (e != null)
                   {
                      nextExtent.Add(e);
@@ -331,9 +333,9 @@ namespace FastFileReader
          Error?.Invoke(this, e);
       }
 
-      protected void ReportStreamChanged()
+      protected void ReportStreamChanged(WatcherChangeTypes changeType)
       {
-         StreamChanged?.Invoke(this);
+         StreamChanged?.Invoke(this, changeType);
       }
 
       private static long Min(long a, long b) => a < b ? a : b;

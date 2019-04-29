@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -24,6 +25,7 @@ namespace FastFileReader
       DateTime lastUpdate;
       bool updateScheduled;
       bool updateForced;
+      bool fullUpdate;
       bool disposed;
       TimeSpan minTimeBetweenUpdates = TimeSpan.FromMilliseconds(1);
       Timer timer;
@@ -55,17 +57,19 @@ namespace FastFileReader
          Dispose(false);
       }
 
-      private void Reader_StreamChanged(object sender)
+      private void Reader_StreamChanged(object sender, WatcherChangeTypes changeType)
       {
-         CheckRange();
+         CheckRange(changeType != WatcherChangeTypes.Changed);
       }
 
-      private void CheckRange()
+      private void CheckRange(bool fullUpdate)
       {
          lock (lockObject)
          {
             if (disposed)
                return;
+
+            this.fullUpdate |= fullUpdate;
 
             //System.Diagnostics.Debug.WriteLine("Check requested");
             if (!updateScheduled)
@@ -102,8 +106,9 @@ namespace FastFileReader
             updateScheduled = false;
             if (position >= 0 && origin == Origin.Begin || position < 0 && origin == Origin.End)
             {
-               LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent);
+               LineRange range = reader.ReadRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent, fullUpdate ? null : curState);
 
+               fullUpdate = false;
                if (origin == Origin.Begin && watchOrigin == Origin.End)
                {
                   position -= range.StreamLength;
@@ -135,6 +140,10 @@ namespace FastFileReader
 
       private void Reader_EcondingChanged(object sender, Encoding enc)
       {
+         lock (lockObject)
+         {
+            fullUpdate = true;
+         }
          EcondingChanged?.Invoke(this, enc);
       }
 
@@ -142,12 +151,12 @@ namespace FastFileReader
       {
       }
 
-      public void ForceUpdate()
+      public void ForceUpdate(bool fullUpdate)
       {
          lock (lockObject)
          {
             updateForced = true;
-            CheckRange();
+            CheckRange(fullUpdate);
          }
       }
 
@@ -157,7 +166,7 @@ namespace FastFileReader
          {
             SetRange(position, origin, maxPrev, maxFoll, maxPrevExtent, maxFollExtent, watchOrigin);
 
-            CheckRange();
+            CheckRange(false);
          }
       }
 
